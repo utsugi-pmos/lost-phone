@@ -1,0 +1,52 @@
+[Unit]
+# The engine behind the feature. The settings UI only writes a file; without
+# this running, that file does nothing and no SMS will ever be obeyed -- which
+# is the safe default, on purpose.
+Description=Find the phone: the engine that listens and obeys
+Documentation=file:///usr/share/doc/lost-phone/README.md
+
+# It needs the session's PulseAudio to make any noise -- measured: PulseAudio
+# owns the sound card and raw ALSA answers "Resource busy" while it is up -- so
+# it belongs to the graphical session and goes away with it.
+PartOf=graphical-session.target
+After=graphical-session.target
+
+# A generous rate limit. Without one, a build that crashed on startup would
+# respawn forever and fill the journal. These live in [Unit], not [Service]:
+# systemd silently ignores them under [Service] and runs with no limit, which is
+# the very runaway this prevents.
+StartLimitIntervalSec=120
+StartLimitBurst=20
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/lost-phoned
+
+# On any stop, put the volume back -- even if the process was killed rather than
+# asked to quit. The daemon also does this from its own destructor; this is the
+# backstop, so a stop can never leave the phone pinned at maximum volume.
+ExecStopPost=/usr/bin/lost-phoned --restaurar
+
+Restart=on-failure
+RestartSec=5
+
+# It sits idle waiting for a message and never draws.
+Nice=5
+
+# 160M, not 64M, and the reason is written down because the number looks
+# generous for a daemon that never draws.
+#
+# The alarm opens a full-screen QtQuick window, and a window launched from here
+# lands in THIS cgroup unless it is moved out. It is moved out -- see the
+# systemd-run --scope in the daemon -- but the fallback path is a plain fork,
+# and a limit that cannot hold both means the fallback does not degrade, it
+# kills the alarm. Which is exactly what happened at 64M: OOM-killed two
+# seconds in, one second of sound, and the phone went quiet while somebody was
+# looking for it.
+#
+# A limit is still worth having: a leak in a daemon that runs for weeks should
+# be stopped by something. But it has to be a limit that only a leak reaches.
+MemoryMax=160M
+
+[Install]
+WantedBy=graphical-session.target
