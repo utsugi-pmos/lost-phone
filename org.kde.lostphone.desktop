@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Find the phone
+Name[es]=Encontrar el móvil
+Comment=Ring the phone and find where it is
+Comment[es]=Hacer sonar el móvil y saber dónde está
+Exec=lost-phone
+Icon=org.kde.lostphone
+Terminal=false
+Categories=Qt;KDE;Settings;Security;
+Keywords=lost;stolen;ring;locate;GPS;SMS;find;phone;
+Keywords[es]=perdido;robado;sonar;localizar;GPS;SMS;buscar;móvil;
+X-KDE-FormFactor=handset;tablet;desktop;

@@ -1,0 +1,71 @@
+#!/bin/sh
+# Runs every test suite in one go.
+#
+# There is no usable Qt6 on the laptop, so the tests are compiled and run inside
+# pmbootstrap's aarch64 chroot, under QEMU. Slower than native, and utterly
+# worth it: the alternative is finding out on the phone, and the phone is the
+# one machine where a bug means walking to it with a cable.
+set -eu
+
+AQUI="$(cd "$(dirname "$0")" && pwd)"
+SRC="$AQUI/.."
+PMB="${PMB:-$HOME/src/pmbootstrap/pmbootstrap.py}"
+CHROOT="${CHROOT:-$HOME/.local/var/pmbootstrap/chroot_buildroot_aarch64}"
+DENTRO=/tmp/lost-phone-test
+
+[ -x "$PMB" ] || [ -f "$PMB" ] || { echo "cannot find pmbootstrap; pass it with PMB=/path/pmbootstrap.py" >&2; exit 1; }
+
+echo "== preparing the aarch64 chroot =="
+python3 "$PMB" chroot -b aarch64 --add qt6-qtbase-dev,build-base,kconfig-dev -- true
+
+sudo mkdir -p "$CHROOT$DENTRO"
+sudo cp "$SRC"/src/config.cpp "$SRC"/src/config.h \
+        "$SRC"/src/nmea.cpp "$SRC"/src/nmea.h \
+        "$SRC"/src/lostmode.cpp "$SRC"/src/lostmode.h \
+        "$SRC"/src/ntfyprotocol.cpp "$SRC"/src/ntfyprotocol.h \
+        "$SRC"/src/lanserver.cpp "$SRC"/src/lanserver.h "$SRC"/src/dbus.h \
+        "$AQUI"/test_config.cpp "$AQUI"/test_nmea.cpp "$AQUI"/test_lostmode.cpp \
+        "$AQUI"/test_ntfy.cpp "$AQUI"/test_lanserver.cpp \
+        "$CHROOT$DENTRO/"
+
+INC="-I. -I/usr/include/qt6 -I/usr/include/qt6/QtCore -I/usr/include/qt6/QtDBus"
+INC="$INC -I/usr/include/KF6/KConfigCore -I/usr/include/KF6/KConfig"
+
+python3 "$PMB" chroot -b aarch64 -- sh -c "
+set -e
+cd $DENTRO
+fallos=0
+compilar_y_correr() {
+    nombre=\"\$1\"; shift
+    printf '\n=== %s ===\n' \"\$nombre\"
+    g++ -std=c++20 -fPIC $INC \"\$@\" -lQt6Core -lQt6DBus -lKF6ConfigCore -o prueba || {
+        echo \"  DOES NOT COMPILE\"; fallos=1; return 1
+    }
+    ./prueba || fallos=1
+}
+compilar_y_correr ajustes test_config.cpp config.cpp
+compilar_y_correr nmea    test_nmea.cpp   nmea.cpp
+compilar_y_correr perdido test_lostmode.cpp lostmode.cpp
+compilar_y_correr ntfy    test_ntfy.cpp   ntfyprotocol.cpp
+
+# The only one that needs the network and an event loop: it brings up the real listener
+# and talks to it over a socket, splitting the requests on purpose. LanServer
+# carries Q_OBJECT, so moc has to be run first -- that is why it does not go with the
+# rest, which are code without signals.
+printf '\n=== home channel ===\n'
+# moc is not on Alpine's PATH: it lives in Qt's libexec.
+MOC=\$(command -v moc || echo /usr/lib/qt6/libexec/moc)
+\$MOC lanserver.h -o moc_lanserver.cpp
+if g++ -std=c++20 -fPIC $INC -I/usr/include/qt6/QtNetwork \
+    test_lanserver.cpp lanserver.cpp config.cpp moc_lanserver.cpp \
+    -lQt6Core -lQt6DBus -lQt6Network -lKF6ConfigCore -o prueba_lan
+then
+    ./prueba_lan || fallos=1
+else
+    echo \"  DOES NOT COMPILE -- the home channel test was NOT run\"
+    fallos=1
+fi
+exit \$fallos
+"
+echo
+echo "== all green =="

@@ -1,0 +1,22 @@
+#!/usr/sbin/nft -f
+#
+# Without this, the home channel DOES NOT WORK over wifi.
+#
+# The postmarketOS firewall has 'policy drop' on input and a rule
+# 'iifname "usb*" accept'. That is: over the cable everything passes, and over
+# wifi nothing passes that is not allowed here.
+#
+# That makes testing over the cable paint green what over wifi is dead -- and not
+# with an error, but with silence: the packets are DROPPED, so the browser keeps
+# spinning until it gives up. It is exactly what happened the first time it was
+# tested from another computer.
+#
+# Port 8479 is the home channel's listener, and both the header-bearing token and
+# the simple door (GET /sonar?clave=...) come in through it. It is opened only on
+# wlan*: the home network is where it makes sense, and it is not opened on the
+# modem.
+table inet filter {
+	chain input {
+		iifname "wlan*" tcp dport 8479 accept comment "lost-phone: home channel"
+	}
+}
