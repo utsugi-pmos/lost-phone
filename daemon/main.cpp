@@ -38,7 +38,7 @@
 #include "src/locker.h"
 #include "src/lostmode.h"
 #include "src/relayclient.h"
-#include "src/proceso.h"
+#include "src/process.h"
 #include "src/ringer.h"
 
 #include <QCoreApplication>

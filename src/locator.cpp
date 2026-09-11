@@ -2,7 +2,7 @@
 
 #include "locator.h"
 
-#include "proceso.h"
+#include "process.h"
 
 #include "nmea.h"
 

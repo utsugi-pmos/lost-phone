@@ -18,7 +18,7 @@
 # Built natively on the surya, like smart-unlock:
 #   cmake -S . -B build -G Ninja && cmake --build build
 cmake_minimum_required(VERSION 3.20)
-project(lost-phone VERSION 1.0)
+project(lost-phone VERSION 1.1)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -60,7 +60,7 @@ add_library(lost_phone_common STATIC
 	src/lostmode.cpp
 	src/lostmode.h
 	src/nmea.cpp
-	src/proceso.h
+	src/process.h
 	src/ntfyclient.cpp
 	src/ntfyprotocol.cpp
 	src/ntfyprotocol.h
