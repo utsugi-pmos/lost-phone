@@ -77,7 +77,7 @@ private:
     QHash<QTcpSocket *, QByteArray> m_partial;
     Settings m_settings;
     std::function<QByteArray()> m_status;
-    std::function<QString()> m_resultado;
+    std::function<QString()> m_result;
 
     // The Avahi entry group's object path while the service is announced.
     QString m_entryGroup;

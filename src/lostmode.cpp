@@ -9,16 +9,36 @@
 #include <QStandardPaths>
 #include <QTextStream>
 
-QString LostModeState::filePath()
+QString LostModeState::dirPath()
 {
     return QStandardPaths::writableLocation(QStandardPaths::GenericStateLocation)
-        + QStringLiteral("/lost-phone/modo-perdido");
+        + QStringLiteral("/lost-phone/");
+}
+
+// Where lost mode is written. The file used to be "modo-perdido"; new saves go
+// to "lost-mode".
+QString LostModeState::filePath()
+{
+    return dirPath() + QStringLiteral("lost-mode");
+}
+
+// Where it is read from: the new name if it is there, otherwise the old one. A
+// phone that was lost BEFORE this upgrade must still come up lost afterwards --
+// that is the whole point of the file surviving a reboot.
+QString LostModeState::readPath()
+{
+    const QString current = filePath();
+    if (QFile::exists(current)) {
+        return current;
+    }
+    const QString legacy = dirPath() + QStringLiteral("modo-perdido");
+    return QFile::exists(legacy) ? legacy : current;
 }
 
 LostMode LostModeState::load()
 {
     LostMode state;
-    QFile f(filePath());
+    QFile f(readPath());
     if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return state;  // no file means not lost, which is the safe answer
     }

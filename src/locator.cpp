@@ -234,7 +234,7 @@ bool Locator::readGnss(Fix &fix)
 //
 // All in the spirit of `|| true`: if something cannot be turned on, carry on with
 // what there is. Half a position is better than none.
-void Locator::encenderLoNecesario()
+void Locator::turnOnWhatIsNeeded()
 {
     if (Proc::output(QStringLiteral("nmcli"),
                         {QStringLiteral("-t"), QStringLiteral("-f"), QStringLiteral("WIFI"),
@@ -293,7 +293,7 @@ void Locator::encenderLoNecesario()
     }
 }
 
-void Locator::devolverRadios()
+void Locator::giveBackRadios()
 {
     if (!m_encendiWifi && !m_encendiWwan && !m_encendiGps) {
         return;  // we turned nothing on: there is nothing to undo
@@ -326,7 +326,7 @@ void Locator::devolverRadios()
     }
 }
 
-void Locator::locate(const Settings &settings, bool encender)
+void Locator::locate(const Settings &settings, bool turnOn)
 {
     if (m_busy) {
         // Normally a second attempt rides on top of the first, which is the
@@ -339,14 +339,14 @@ void Locator::locate(const Settings &settings, bool encender)
         // seems to do nothing.
         //
         // So a real search drops the refresh and starts from scratch.
-        if (!encender || m_encendio) {
+        if (!turnOn || m_encendio) {
             return;
         }
         qInfo() << "lost-phoned: a real search arrives; restarting the background refresh";
         m_poll.stop();
     }
     m_busy = true;
-    m_encendio = encender;
+    m_encendio = turnOn;
     m_settings = settings;
 
     // First of all: turn on whatever is needed. Without this, a phone with Wi-Fi
@@ -356,8 +356,8 @@ void Locator::locate(const Settings &settings, bool encender)
     // Except in the background refresh, which makes do with whatever is on: that
     // happens every half hour and for ever, and cannot leave the GPS on in
     // perpetuity. Whoever SEARCHES for the phone does turn everything on.
-    if (encender) {
-        encenderLoNecesario();
+    if (turnOn) {
+        turnOnWhatIsNeeded();
     }
     m_fix = Fix();
     m_fix.when = QDateTime::currentDateTime();

@@ -115,7 +115,7 @@ int main(int argc, char **argv)
         s.relayUrl = QStringLiteral("https://ejemplo.com");
         check("the relay on but without a witness still does not obey",
                   !LostPhoneConfig::allows(s, Channel::Relay, Capability::Ring));
-        s.relayToken = QStringLiteral("un-testigo");
+        s.relayToken = QStringLiteral("a-token");
         check("with witness and permission, the relay obeys",
                   LostPhoneConfig::allows(s, Channel::Relay, Capability::Ring));
         check("but lock stays off on the relay",
@@ -133,15 +133,15 @@ int main(int argc, char **argv)
         s.smsAllowLock = true;
         s.lanAllowLock = true;
         s.ntfyAllowLock = true;
-        for (const Channel otro : {Channel::Sms, Channel::Lan, Channel::Ntfy}) {
+        for (const Channel other : {Channel::Sms, Channel::Lan, Channel::Ntfy}) {
             check("no other channel can power off the phone",
-                      !LostPhoneConfig::allows(s, otro, Capability::Power));
+                      !LostPhoneConfig::allows(s, other, Capability::Power));
         }
 
         s.lanEnabled = true;
         check("the home channel on but without a witness does not obey",
                   !LostPhoneConfig::allows(s, Channel::Lan, Capability::Ring));
-        s.lanToken = QStringLiteral("otro-testigo");
+        s.lanToken = QStringLiteral("another-token");
         check("with its own witness, the home channel obeys",
                   LostPhoneConfig::allows(s, Channel::Lan, Capability::Ring));
         check("and locate from home comes off",
@@ -154,7 +154,7 @@ int main(int argc, char **argv)
         s.ntfyTopic = QStringLiteral("lost-phone-abcdefgh");
         check("ntfy with a topic but no key does not obey",
                   !LostPhoneConfig::allows(s, Channel::Ntfy, Capability::Ring));
-        s.ntfyKey = QStringLiteral("otra-key-mas");
+        s.ntfyKey = QStringLiteral("other-key-mas");
         s.ntfyTopic.clear();
         check("ntfy with a key but no topic does not obey",
                   !LostPhoneConfig::allows(s, Channel::Ntfy, Capability::Ring));
@@ -183,12 +183,12 @@ int main(int argc, char **argv)
     wipeConfig();
     {
         Settings s;
-        s.ringSound = QStringLiteral("tono");
+        s.ringSound = QStringLiteral("tone");
         s.ringVolume = 35;
         LostPhoneConfig::save(s);
 
         const Settings leida = LostPhoneConfig::load();
-        check("the strident tone survives", leida.ringSound == QLatin1String("tono"));
+        check("the strident tone survives", leida.ringSound == QLatin1String("tone"));
         check("the volume survives", leida.ringVolume == 35);
     }
     {

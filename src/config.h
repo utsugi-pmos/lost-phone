@@ -100,7 +100,7 @@ struct Settings {
                                    // forever is a phone with a flat battery
     bool ringRequiresPin = true;   // only the PIN or the panel can silence it
 
-    // What it plays. A path to a sound file, or the literal "tono" for the
+    // What it plays. A path to a sound file, or the literal "tone" for the
     // generated two-frequency warble.
     //
     // Blip by default -- one second, from the sound theme the phone already

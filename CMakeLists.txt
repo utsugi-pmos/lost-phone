@@ -112,14 +112,14 @@ qt_add_executable(lost-phone main.cpp)
 # the app, with ui/ConfigView.qml staying the one file to edit.
 configure_file(ui/ConfigView.qml ${CMAKE_CURRENT_BINARY_DIR}/appqml/ConfigView.qml COPYONLY)
 configure_file(App.qml ${CMAKE_CURRENT_BINARY_DIR}/appqml/App.qml COPYONLY)
-configure_file(Alarma.qml ${CMAKE_CURRENT_BINARY_DIR}/appqml/Alarma.qml COPYONLY)
+configure_file(Alarm.qml ${CMAKE_CURRENT_BINARY_DIR}/appqml/Alarm.qml COPYONLY)
 
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/appqml/App.qml
 	PROPERTIES QT_RESOURCE_ALIAS App.qml)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/appqml/ConfigView.qml
 	PROPERTIES QT_RESOURCE_ALIAS ConfigView.qml)
-set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/appqml/Alarma.qml
-	PROPERTIES QT_RESOURCE_ALIAS Alarma.qml)
+set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/appqml/Alarm.qml
+	PROPERTIES QT_RESOURCE_ALIAS Alarm.qml)
 
 qt_add_qml_module(lost-phone
 	URI LostPhone
@@ -127,7 +127,7 @@ qt_add_qml_module(lost-phone
 	QML_FILES
 		${CMAKE_CURRENT_BINARY_DIR}/appqml/App.qml
 		${CMAKE_CURRENT_BINARY_DIR}/appqml/ConfigView.qml
-		${CMAKE_CURRENT_BINARY_DIR}/appqml/Alarma.qml
+		${CMAKE_CURRENT_BINARY_DIR}/appqml/Alarm.qml
 )
 
 target_link_libraries(lost-phone PRIVATE

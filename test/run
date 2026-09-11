@@ -35,7 +35,7 @@ python3 "$PMB" chroot -b aarch64 -- sh -c "
 set -e
 cd $INSIDE
 failures=0
-compilar_y_correr() {
+build_and_run() {
     name=\"\$1\"; shift
     printf '\n=== %s ===\n' \"\$name\"
     g++ -std=c++20 -fPIC $INC \"\$@\" -lQt6Core -lQt6DBus -lKF6ConfigCore -o test || {
@@ -43,10 +43,10 @@ compilar_y_correr() {
     }
     ./test || failures=1
 }
-compilar_y_correr settings test_config.cpp config.cpp
-compilar_y_correr nmea    test_nmea.cpp   nmea.cpp
-compilar_y_correr perdido test_lostmode.cpp lostmode.cpp
-compilar_y_correr ntfy    test_ntfy.cpp   ntfyprotocol.cpp
+build_and_run settings test_config.cpp config.cpp
+build_and_run nmea    test_nmea.cpp   nmea.cpp
+build_and_run lostmode test_lostmode.cpp lostmode.cpp
+build_and_run ntfy    test_ntfy.cpp   ntfyprotocol.cpp
 
 # The only one that needs the network and an event loop: it brings up the real listener
 # and talks to it over a socket, splitting the requests on purpose. LanServer

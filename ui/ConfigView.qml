@@ -141,7 +141,7 @@ ColumnLayout {
                 Layout.fillWidth: true
                 visible: root.backend.lanEnabled && root.backend.lanToken.length > 0
                 type: Kirigami.MessageType.Information
-                text: i18n("From the computer, just once: «setup/find_it-mi-phone --emparejar». It brings the token over the cable, with nothing to type.")
+                text: i18n("From the computer, just once: «setup/find-my-phone --pair». It brings the token over the cable, with nothing to type.")
             }
 
             RowLayout {
@@ -181,7 +181,7 @@ ColumnLayout {
                 Layout.fillWidth: true
                 visible: root.backend.lanSimpleEnabled && root.backend.lanSimpleUrl.length > 0
                 type: Kirigami.MessageType.Positive
-                text: i18n("Your link:\n%1\n\nSwap «sonar» for «parar» and that is it: this link only rings and silences, never tells where it is or locks. The key goes in the address and ends up in the browser history and the router logs; for anything else you need the token. It only works inside your network.",
+                text: i18n("Your link:\n%1\n\nSwap «ring» for «stop» and that is it: this link only rings and silences, never tells where it is or locks. The key goes in the address and ends up in the browser history and the router logs; for anything else you need the token. It only works inside your network.",
                            root.backend.lanSimpleUrl)
             }
 
@@ -522,7 +522,7 @@ ColumnLayout {
                 spacing: Kirigami.Units.smallSpacing
 
                 QQC2.TextField {
-                    id: campoCodigo
+                    id: codeField
                     Layout.fillWidth: true
                     placeholderText: i18n("the 4 numbers from the panel")
                     inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
@@ -531,10 +531,10 @@ ColumnLayout {
                 QQC2.Button {
                     text: root.backend.relayPaired ? i18n("Re-pair") : i18n("Pair")
                     icon.name: "network-connect"
-                    enabled: campoCodigo.text.length > 0 && root.backend.relayUrl.length > 0
+                    enabled: codeField.text.length > 0 && root.backend.relayUrl.length > 0
                     onClicked: {
-                        root.backend.pair(campoCodigo.text)
-                        campoCodigo.text = ""
+                        root.backend.pair(codeField.text)
+                        codeField.text = ""
                     }
                 }
             }
@@ -575,11 +575,11 @@ ColumnLayout {
                 Layout.fillWidth: true
                 Layout.leftMargin: Kirigami.Units.smallSpacing
                 model: [
-                    { text: i18n("Always connected — obeys instantly (recommended)"), minutos: 0 },
-                    { text: i18n("Every 5 min — may take 5 min to obey"), minutos: 5 },
-                    { text: i18n("Every 15 min — may take 15 min"), minutos: 15 },
-                    { text: i18n("Every 30 min — may take half an hour"), minutos: 30 },
-                    { text: i18n("Every hour — may take an hour"), minutos: 60 }
+                    { text: i18n("Always connected — obeys instantly (recommended)"), minutes: 0 },
+                    { text: i18n("Every 5 min — may take 5 min to obey"), minutes: 5 },
+                    { text: i18n("Every 15 min — may take 15 min"), minutes: 15 },
+                    { text: i18n("Every 30 min — may take half an hour"), minutes: 30 },
+                    { text: i18n("Every hour — may take an hour"), minutes: 60 }
                 ]
                 textRole: "text"
                 currentIndex: {
@@ -590,7 +590,7 @@ ColumnLayout {
                     if (m <= 30) return 3
                     return 4
                 }
-                onActivated: root.backend.setRelayIdleMinutes(model[currentIndex].minutos)
+                onActivated: root.backend.setRelayIdleMinutes(model[currentIndex].minutes)
             }
 
             RowLayout {
@@ -877,9 +877,9 @@ ColumnLayout {
                 textRole: "name"
                 valueRole: "path"
                 currentIndex: {
-                    const lista = root.backend.sounds
-                    for (let i = 0; i < lista.length; i++) {
-                        if (lista[i].path === root.backend.ringSound) {
+                    const list = root.backend.sounds
+                    for (let i = 0; i < list.length; i++) {
+                        if (list[i].path === root.backend.ringSound) {
                             return i
                         }
                     }

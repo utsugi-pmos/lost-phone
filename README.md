@@ -11,8 +11,8 @@ panel, is in `surya/docs/LOST-PHONE-00-plan.md`.
 
 From **any phone**, an SMS to this phone:
 
-    <key> sonar     starts beeping, loud, even if it is silenced
-    <key> donde     answers with the position
+    <key> ring     starts beeping, loud, even if it is silenced
+    <key> where     answers with the position
     <key> state    says what it has on
 
 **Silencing it cannot be done by SMS**, on purpose: whoever has the phone in hand
@@ -32,9 +32,9 @@ metres away and on your same wifi, setting up a server on the internet is a lot 
 machinery.
 
 ```
-setup/find_it-mi-phone --emparejar   once, it brings over the token via the cable
-setup/find_it-mi-phone sonar         and that's it
-setup/find_it-mi-phone state
+setup/find-my-phone --pair   once, it brings over the token via the cable
+setup/find-my-phone ring         and that's it
+setup/find-my-phone state
 ```
 
 The phone advertises itself over mDNS as `_lost-phone._tcp` and the command finds
@@ -61,7 +61,7 @@ reaches you as a push notification on the phone you carry, not as a page you hav
 to remember to open.
 
 ```
-orders topic      the phone listens here:   «<key> sonar»
+orders topic      the phone listens here:   «<key> ring»
 replies topic     you subscribe from the ntfy app
 ```
 
@@ -82,7 +82,7 @@ Three decisions that are not cosmetic:
 just the same:
 
 ```
-setup/find_it-mi-phone --en <ip-del-phone-en-la-vpn> sonar
+setup/find-my-phone --at <the phone address on the VPN> ring
 ```
 
 Writing a "VPN channel" would have been inventing work.
@@ -110,8 +110,8 @@ one.
 ### SMS
 
 ```
-<key> sonar      starts beeping even if it is silenced
-<key> donde      answers with the position
+<key> ring      starts beeping even if it is silenced
+<key> where      answers with the position
 <key> state     says what it has on
 ```
 
@@ -123,9 +123,9 @@ It is silenced by unlocking the phone, or from the panel.
 ### Your home network
 
 ```
-setup/find_it-mi-phone --emparejar
-setup/find_it-mi-phone sonar
-setup/find_it-mi-phone --en <ip> sonar     if you are not on the same subnet
+setup/find-my-phone --pair
+setup/find-my-phone ring
+setup/find-my-phone --at <ip> ring     if you are not on the same subnet
 ```
 
 ### The firewall, and why this seemed to work and did not
@@ -152,11 +152,11 @@ The lesson: **testing by the comfortable path is not testing.**
 A link, and that's it:
 
 ```
-http://<phone>:8479/sonar?key=TUCLAVE
-http://<phone>:8479/parar?key=TUCLAVE
+http://<phone>:8479/ring?key=YOURKEY
+http://<phone>:8479/stop?key=YOURKEY
 ```
 
-**Those two and no others.** No `donde`, no `bloquear`, no `state`: they answer 403
+**Those two and no others.** No `where`, no `lock`, no `state`: they answer 403
 even if the home channel has those permissions. The reason is a few lines further
 down -- this key travels in the address.
 
@@ -210,7 +210,7 @@ interactive interface that is not tested non-interactively is untested.**
 
 | where | what you do |
 |---|---|
-| at home | `find_it-mi-phone sonar`, or `<key> sonar` |
+| at home | `find-my-phone ring`, or `<key> ring` |
 | out, with data | the panel: *Ring* or *Where is it?* |
 | out, no data | SMS |
 | it has been taken from you | the panel: *Lock*, with a message for whoever finds it |
@@ -241,7 +241,7 @@ can do harm come **off from the factory**:
 ## Lost mode
 
 A lock order leaves the phone in **lost mode**, which is not a variable but a state
-written to disk (`~/.local/state/lost-phone/modo-perdido`) and reread on every boot
+written to disk (`~/.local/state/lost-phone/lost-mode`) and reread on every boot
 — because the first thing whoever picks up someone else's phone does is reboot it.
 While it lasts:
 
@@ -324,7 +324,7 @@ for— so with the phone locked you unlock and there it is, waiting. That is the
 working as requested, not a limitation to hide.
 
 It closes by itself when the alarm stops for any reason: the seconds were met, it
-was stopped from the panel, someone sent `parar`. A screen that demands you stop
+was stopped from the panel, someone sent `stop`. A screen that demands you stop
 something already stopped is a screen that teaches you to ignore it.
 
 And it is launched **in its own cgroup** (`systemd-run --user --scope`). It is not a
@@ -360,7 +360,7 @@ hw:0,0` while it is alive answers `Resource busy`. So the path is through Pulse 
 Pulse is there, and ALSA directly only when it is not.
 
 If the daemon dies suddenly -- `SIGKILL`, out of memory, the session leaving
-mid-alarm -- the volume is restored by `lost-phoned --restaurar`, hooked to the
+mid-alarm -- the volume is restored by `lost-phoned --restore`, hooked to the
 unit's `ExecStopPost`. Without that backup, a phone could stay at full volume
 forever.
 

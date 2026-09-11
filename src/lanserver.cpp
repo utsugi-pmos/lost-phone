@@ -65,7 +65,7 @@ bool LanServer::listening() const
 
 void LanServer::setResultProvider(const std::function<QString()> &provider)
 {
-    m_resultado = provider;
+    m_result = provider;
 }
 
 void LanServer::setStatusProvider(const std::function<QByteArray()> &provider)
@@ -268,41 +268,41 @@ void LanServer::handle(QTcpSocket *socket, const QByteArray &request)
     if (!authorised && m_settings.lanSimpleEnabled && !m_settings.lanSimpleKey.isEmpty()
         && head.startsWith("GET /")) {
         const QByteArray path = head.mid(4, head.indexOf(' ', 4) - 4).trimmed();
-        const int pregunta = path.indexOf('?');
-        if (pregunta > 0) {
-            const QString verbo = QString::fromUtf8(path.left(pregunta)).mid(1);
+        const int question = path.indexOf('?');
+        if (question > 0) {
+            const QString verb = QString::fromUtf8(path.left(question)).mid(1);
             QString key;
-            const QList<QByteArray> campos = path.mid(pregunta + 1).split('&');
-            for (const QByteArray &campo : campos) {
+            const QList<QByteArray> fields = path.mid(question + 1).split('&');
+            for (const QByteArray &field : fields) {
                 // "password" is the documented name; "key" is what the first
                 // version read, and what configure-search printed for months was
                 // "password" -- so the documented link did not work. Both now.
-                if (campo.startsWith("password=")) {
-                    key = QString::fromUtf8(QByteArray::fromPercentEncoding(campo.mid(9)));
-                } else if (campo.startsWith("key=")) {
-                    key = QString::fromUtf8(QByteArray::fromPercentEncoding(campo.mid(6)));
+                if (field.startsWith("password=")) {
+                    key = QString::fromUtf8(QByteArray::fromPercentEncoding(field.mid(9)));
+                } else if (field.startsWith("key=")) {
+                    key = QString::fromUtf8(QByteArray::fromPercentEncoding(field.mid(6)));
                 }
             }
-            const bool puede = verbo == QLatin1String("sonar") || verbo == QLatin1String("ring")
-                || verbo == QLatin1String("parar") || verbo == QLatin1String("stop");
-            if (!key.isEmpty() && key == m_settings.lanSimpleKey && !verbo.isEmpty()) {
-                if (!puede) {
+            const bool allowed = verb == QLatin1String("sonar") || verb == QLatin1String("ring")
+                || verb == QLatin1String("parar") || verb == QLatin1String("stop");
+            if (!key.isEmpty() && key == m_settings.lanSimpleKey && !verb.isEmpty()) {
+                if (!allowed) {
                     respond(socket, 403,
                             QByteArray("the simple door only rings and stops; for anything else "
                                        "the token is needed\n"),
                             "text/plain");
                     return;
                 }
-                Q_EMIT command(verbo);
-                const QString motivo = m_resultado ? m_resultado() : QString();
+                Q_EMIT command(verb);
+                const QString reason = m_result ? m_result() : QString();
                 // Plain text and not JSON: this is read by a person on the
                 // browser screen, not a program.
-                if (motivo.isEmpty()) {
+                if (reason.isEmpty()) {
                     respond(socket, 200,
-                            QByteArray("order sent: ") + verbo.toUtf8() + "\n", "text/plain");
+                            QByteArray("order sent: ") + verb.toUtf8() + "\n", "text/plain");
                 } else {
                     respond(socket, 409,
-                            QByteArray("not done: ") + motivo.toUtf8() + "\n", "text/plain");
+                            QByteArray("not done: ") + reason.toUtf8() + "\n", "text/plain");
                 }
                 return;
             }
@@ -318,7 +318,11 @@ void LanServer::handle(QTcpSocket *socket, const QByteArray &request)
         respond(socket, 200, m_status ? m_status() : QByteArray("{}"));
         return;
     }
-    if (head.startsWith("POST /orden")) {
+    // The path was "/orden" and is now "/command". Both are served: the client
+    // that posts here is find-my-phone on the laptop, a different piece of
+    // software with its own release, and a daemon that answered only the new
+    // path would go deaf to every copy of it that has not been updated.
+    if (head.startsWith("POST /command") || head.startsWith("POST /orden")) {
         const QString verb = QString::fromUtf8(body).trimmed();
         if (verb.isEmpty()) {
             respond(socket, 404, "{\"error\":\"no order\"}");
@@ -330,12 +334,12 @@ void LanServer::handle(QTcpSocket *socket, const QByteArray &request)
         // is worse than an error: it leaves you looking for the fault in the wrong
         // place.
         Q_EMIT command(verb);
-        const QString motivo = m_resultado ? m_resultado() : QString();
-        if (motivo.isEmpty()) {
+        const QString reason = m_result ? m_result() : QString();
+        if (reason.isEmpty()) {
             respond(socket, 200, "{\"ok\":true}");
         } else {
             respond(socket, 409,
-                    QByteArray("{\"ok\":false,\"motivo\":\"") + motivo.toUtf8() + "\"}");
+                    QByteArray("{\"ok\":false,\"reason\":\"") + reason.toUtf8() + "\"}");
         }
         return;
     }

@@ -36,7 +36,7 @@ int main()
     check("the open event is not one either",
               NtfyProtocol::commandFrom("{\"event\":\"open\",\"topic\":\"t\"}", key).isEmpty());
     check("a line that is not JSON is not one either",
-              NtfyProtocol::commandFrom("esto no es json", key).isEmpty());
+              NtfyProtocol::commandFrom("this is not json", key).isEmpty());
     check("an empty message is not one either",
               NtfyProtocol::commandFrom(message(""), key).isEmpty());
 
@@ -49,7 +49,7 @@ int main()
     // The important bit: MENTIONING the key is not enough, it has to come FIRST.
     // Otherwise, any conversation that quoted it would fire orders.
     check("mentioning the key in the middle is not enough",
-              NtfyProtocol::commandFrom(message("oye la key es mykey sonar"), key).isEmpty());
+              NtfyProtocol::commandFrom(message("hey the key is mykey sonar"), key).isEmpty());
     check("the key stuck to another word does not pass",
               NtfyProtocol::commandFrom(message("mykeyx sonar"), key).isEmpty());
     check("the key alone, without a verb, does nothing",
@@ -68,8 +68,8 @@ int main()
               NtfyProtocol::commandFrom(message("  mykey   sonar  "), key)
                   == QLatin1String("sonar"));
     check("the lock argument arrives whole",
-              NtfyProtocol::commandFrom(message("mykey bloquear llama al 600 123 456"), key)
-                  == QLatin1String("bloquear llama al 600 123 456"));
+              NtfyProtocol::commandFrom(message("mykey bloquear call 600 123 456"), key)
+                  == QLatin1String("bloquear call 600 123 456"));
 
     std::printf("\n%d checks, %d failures\n", total, failures);
     return failures == 0 ? 0 : 1;
