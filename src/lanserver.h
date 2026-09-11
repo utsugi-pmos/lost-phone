@@ -51,7 +51,7 @@ public:
 
     bool listening() const;
 
-    // Filled in by the daemon so /estado can answer something useful without
+    // Filled in by the daemon so /state can answer something useful without
     // this class knowing anything about ringing or locating.
     void setStatusProvider(const std::function<QByteArray()> &provider);
 

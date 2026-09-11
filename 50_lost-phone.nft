@@ -12,7 +12,7 @@
 # tested from another computer.
 #
 # Port 8479 is the home channel's listener, and both the header-bearing token and
-# the simple door (GET /sonar?clave=...) come in through it. It is opened only on
+# the simple door (GET /sonar?key=...) come in through it. It is opened only on
 # wlan*: the home network is where it makes sense, and it is not opened on the
 # modem.
 table inet filter {

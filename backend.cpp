@@ -107,14 +107,14 @@ QString LostPhoneBackend::suggestKey() const
 // in the code -- goes stale the moment somebody installs another theme, and it
 // would do so silently: the chosen melody would still be there and the list
 // would not.
-QVariantList LostPhoneBackend::sonidos() const
+QVariantList LostPhoneBackend::sounds() const
 {
-    QVariantList fuera;
+    QVariantList outside;
 
     // The generated tone first, because it does not depend on any file existing
     // and is the only one that stays if the sound theme is uninstalled.
-    fuera.append(QVariantMap{{QStringLiteral("nombre"), QStringLiteral("Shrill tone")},
-                             {QStringLiteral("ruta"), QStringLiteral("tono")}});
+    outside.append(QVariantMap{{QStringLiteral("name"), QStringLiteral("Shrill tone")},
+                             {QStringLiteral("path"), QStringLiteral("tono")}});
 
     const QStringList carpetas = {
         QStringLiteral("/usr/share/sounds/plasma-mobile/stereo/notifications"),
@@ -123,17 +123,17 @@ QVariantList LostPhoneBackend::sonidos() const
     };
     for (const QString &carpeta : carpetas) {
         QDir dir(carpeta);
-        const QStringList ficheros =
+        const QStringList files =
             dir.entryList({QStringLiteral("*.oga"), QStringLiteral("*.ogg"),
                            QStringLiteral("*.wav")},
                           QDir::Files, QDir::Name);
-        for (const QString &fichero : ficheros) {
-            fuera.append(QVariantMap{
-                {QStringLiteral("nombre"), QFileInfo(fichero).completeBaseName()},
-                {QStringLiteral("ruta"), dir.filePath(fichero)}});
+        for (const QString &file : files) {
+            outside.append(QVariantMap{
+                {QStringLiteral("name"), QFileInfo(file).completeBaseName()},
+                {QStringLiteral("path"), dir.filePath(file)}});
         }
     }
-    return fuera;
+    return outside;
 }
 
 QString LostPhoneBackend::lastKnownSummary() const
@@ -274,15 +274,15 @@ QString LostPhoneBackend::lanSimpleUrl() const
     if (m_working.lanSimpleKey.isEmpty()) {
         return {};
     }
-    QString direccion;
+    QString address;
     const QList<QNetworkInterface> interfaces = QNetworkInterface::allInterfaces();
     for (const QNetworkInterface &nic : interfaces) {
         if (!nic.flags().testFlag(QNetworkInterface::IsUp)
             || nic.flags().testFlag(QNetworkInterface::IsLoopBack)) {
             continue;
         }
-        for (const QNetworkAddressEntry &entrada : nic.addressEntries()) {
-            const QHostAddress ip = entrada.ip();
+        for (const QNetworkAddressEntry &input : nic.addressEntries()) {
+            const QHostAddress ip = input.ip();
             if (ip.protocol() != QAbstractSocket::IPv4Protocol) {
                 continue;
             }
@@ -290,16 +290,16 @@ QString LostPhoneBackend::lanSimpleUrl() const
             // and showing it as "your link" would be handing out an address
             // that almost never works. Wi-Fi is the one that gets used.
             if (nic.name().startsWith(QLatin1String("wlan"))) {
-                direccion = ip.toString();
-            } else if (direccion.isEmpty()) {
-                direccion = ip.toString();
+                address = ip.toString();
+            } else if (address.isEmpty()) {
+                address = ip.toString();
             }
         }
     }
-    if (direccion.isEmpty()) {
+    if (address.isEmpty()) {
         return {};
     }
-    return QStringLiteral("http://%1:8479/sonar?clave=%2").arg(direccion, m_working.lanSimpleKey);
+    return QStringLiteral("http://%1:8479/sonar?key=%2").arg(address, m_working.lanSimpleKey);
 }
 SETTER(NtfyAllowRing, ntfyAllowRing, bool)
 SETTER(NtfyAllowLocate, ntfyAllowLocate, bool)

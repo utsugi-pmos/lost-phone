@@ -11,9 +11,9 @@ panel, is in `surya/docs/LOST-PHONE-00-plan.md`.
 
 From **any phone**, an SMS to this phone:
 
-    <clave> sonar     starts beeping, loud, even if it is silenced
-    <clave> donde     answers with the position
-    <clave> estado    says what it has on
+    <key> sonar     starts beeping, loud, even if it is silenced
+    <key> donde     answers with the position
+    <key> state    says what it has on
 
 **Silencing it cannot be done by SMS**, on purpose: whoever has the phone in hand
 reads the key on the screen of the message that just arrived, and silencing the
@@ -32,9 +32,9 @@ metres away and on your same wifi, setting up a server on the internet is a lot 
 machinery.
 
 ```
-setup/buscar-mi-movil --emparejar   once, it brings over the token via the cable
-setup/buscar-mi-movil sonar         and that's it
-setup/buscar-mi-movil estado
+setup/find_it-mi-phone --emparejar   once, it brings over the token via the cable
+setup/find_it-mi-phone sonar         and that's it
+setup/find_it-mi-phone state
 ```
 
 The phone advertises itself over mDNS as `_lost-phone._tcp` and the command finds
@@ -61,7 +61,7 @@ reaches you as a push notification on the phone you carry, not as a page you hav
 to remember to open.
 
 ```
-orders topic      the phone listens here:   «<clave> sonar»
+orders topic      the phone listens here:   «<key> sonar»
 replies topic     you subscribe from the ntfy app
 ```
 
@@ -82,7 +82,7 @@ Three decisions that are not cosmetic:
 just the same:
 
 ```
-setup/buscar-mi-movil --en <ip-del-movil-en-la-vpn> sonar
+setup/find_it-mi-phone --en <ip-del-phone-en-la-vpn> sonar
 ```
 
 Writing a "VPN channel" would have been inventing work.
@@ -110,9 +110,9 @@ one.
 ### SMS
 
 ```
-<clave> sonar      starts beeping even if it is silenced
-<clave> donde      answers with the position
-<clave> estado     says what it has on
+<key> sonar      starts beeping even if it is silenced
+<key> donde      answers with the position
+<key> state     says what it has on
 ```
 
 From any phone, to the phone's number. **Silencing it cannot be done by SMS**, on
@@ -123,9 +123,9 @@ It is silenced by unlocking the phone, or from the panel.
 ### Your home network
 
 ```
-setup/buscar-mi-movil --emparejar
-setup/buscar-mi-movil sonar
-setup/buscar-mi-movil --en <ip> sonar     if you are not on the same subnet
+setup/find_it-mi-phone --emparejar
+setup/find_it-mi-phone sonar
+setup/find_it-mi-phone --en <ip> sonar     if you are not on the same subnet
 ```
 
 ### The firewall, and why this seemed to work and did not
@@ -152,11 +152,11 @@ The lesson: **testing by the comfortable path is not testing.**
 A link, and that's it:
 
 ```
-http://<movil>:8479/sonar?clave=TUCLAVE
-http://<movil>:8479/parar?clave=TUCLAVE
+http://<phone>:8479/sonar?key=TUCLAVE
+http://<phone>:8479/parar?key=TUCLAVE
 ```
 
-**Those two and no others.** No `donde`, no `bloquear`, no `estado`: they answer 403
+**Those two and no others.** No `donde`, no `bloquear`, no `state`: they answer 403
 even if the home channel has those permissions. The reason is a few lines further
 down -- this key travels in the address.
 
@@ -194,7 +194,7 @@ push notification on the phone you carry.
 
 `setup/configurar-busqueda` asks path by path from the computer, generates the keys
 and pairs with the relay — the one thing the phone cannot do on its own. It has
-`--estado` and `--apagar`.
+`--state` and `--apagar`.
 
 It took four faults to make it reliable, and the four were the same symptom:
 **carrying on without having read the answer**. Always writing to `/dev/tty` and
@@ -210,7 +210,7 @@ interactive interface that is not tested non-interactively is untested.**
 
 | where | what you do |
 |---|---|
-| at home | `buscar-mi-movil sonar`, or `<clave> sonar` |
+| at home | `find_it-mi-phone sonar`, or `<key> sonar` |
 | out, with data | the panel: *Ring* or *Where is it?* |
 | out, no data | SMS |
 | it has been taken from you | the panel: *Lock*, with a message for whoever finds it |
@@ -432,7 +432,7 @@ travels in the clear, and on the home network being on the wifi is enough.
 
 ## Tests
 
-    test/ejecutar
+    test/run
 
 Compiles and runs inside pmbootstrap's aarch64 chroot, because on the laptop there
 is no usable Qt6. Five suites, 90 checks. They cover the capability matrix (which
@@ -441,6 +441,6 @@ looking for the phone nineteen kilometres to the south.
 
 ## Where it is edited
 
-In `surya/setup/ajustes/lost-phone.d/`. The copy in
+In `surya/setup/settings/lost-phone.d/`. The copy in
 `surya/pmaports/temp/lost-phone/` is disposable and is written by
 `surya/pmaports/sincronizar lost-phone`.

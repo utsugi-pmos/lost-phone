@@ -13,17 +13,17 @@
 #include <cmath>
 #include <cstdio>
 
-static int fallos = 0;
+static int failures = 0;
 static int total = 0;
 
-static void comprobar(const char *nombre, bool ok)
+static void check(const char *name, bool ok)
 {
     ++total;
     if (!ok) {
-        ++fallos;
-        std::printf("  FAIL   %s\n", nombre);
+        ++failures;
+        std::printf("  FAIL   %s\n", name);
     } else {
-        std::printf("  ok     %s\n", nombre);
+        std::printf("  ok     %s\n", name);
     }
 }
 
@@ -35,13 +35,13 @@ int main()
     std::printf("\n--- no fix, which is normal indoors ---\n");
     {
         // Captured from the surya: eleven satellites in view and quality 0.
-        comprobar("an empty GPGGA gives no position",
+        check("an empty GPGGA gives no position",
                   !Nmea::parseGga(QStringLiteral("$GPGGA,,,,,,0,,,,,,,,*66"), lat, lon));
-        comprobar("quality 0 gives no position",
+        check("quality 0 gives no position",
                   !Nmea::parseGga(
                       QStringLiteral("$GPGGA,134923.00,4025.0068,N,00342.2274,W,0,04,2.1,660.0,M,,M,,*5A"),
                       lat, lon));
-        comprobar("a truncated sentence gives no position",
+        check("a truncated sentence gives no position",
                   !Nmea::parseGga(QStringLiteral("$GPGGA,134923.00"), lat, lon));
     }
 
@@ -52,10 +52,10 @@ int main()
         const bool ok = Nmea::parseGga(
             QStringLiteral("$GPGGA,134923.00,4025.0068,N,00342.2274,W,1,08,1.1,660.0,M,,M,,*5A"),
             lat, lon);
-        comprobar("a sentence with a fix does give a position", ok);
-        comprobar("degrees are degrees and not ddmm (latitude)", std::fabs(lat - 40.41678) < 0.0001);
-        comprobar("degrees are degrees and not ddmm (longitude)", std::fabs(lon + 3.70379) < 0.0001);
-        comprobar("west is negative", lon < 0);
+        check("a sentence with a fix does give a position", ok);
+        check("degrees are degrees and not ddmm (latitude)", std::fabs(lat - 40.41678) < 0.0001);
+        check("degrees are degrees and not ddmm (longitude)", std::fabs(lon + 3.70379) < 0.0001);
+        check("west is negative", lon < 0);
     }
 
     std::printf("\n--- southern and eastern hemisphere ---\n");
@@ -63,11 +63,11 @@ int main()
         const bool ok = Nmea::parseGga(
             QStringLiteral("$GPGGA,134923.00,3352.1234,S,15112.5678,E,1,08,1.1,10.0,M,,M,,*00"),
             lat, lon);
-        comprobar("south and east are read", ok);
-        comprobar("south is negative", lat < 0);
-        comprobar("Sydney, roughly", std::fabs(lat + 33.86872) < 0.001 && std::fabs(lon - 151.20946) < 0.001);
+        check("south and east are read", ok);
+        check("south is negative", lat < 0);
+        check("Sydney, roughly", std::fabs(lat + 33.86872) < 0.001 && std::fabs(lon - 151.20946) < 0.001);
     }
 
-    std::printf("\n%d checks, %d failures\n", total, fallos);
-    return fallos == 0 ? 0 : 1;
+    std::printf("\n%d checks, %d failures\n", total, failures);
+    return failures == 0 ? 0 : 1;
 }

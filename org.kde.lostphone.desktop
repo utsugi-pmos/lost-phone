@@ -9,5 +9,5 @@ Icon=org.kde.lostphone
 Terminal=false
 Categories=Qt;KDE;Settings;Security;
 Keywords=lost;stolen;ring;locate;GPS;SMS;find;phone;
-Keywords[es]=perdido;robado;sonar;localizar;GPS;SMS;buscar;móvil;
+Keywords[es]=perdido;robado;sonar;localizar;GPS;SMS;find_it;móvil;
 X-KDE-FormFactor=handset;tablet;desktop;

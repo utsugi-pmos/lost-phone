@@ -72,7 +72,7 @@ private:
     QString resolveSound();
 
     // The output it must ALWAYS ring through: the phone's speaker.
-    QString altavoz();
+    QString speaker();
 
     void raiseVolume();
     void restoreVolume();

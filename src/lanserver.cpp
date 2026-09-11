@@ -267,25 +267,25 @@ void LanServer::handle(QTcpSocket *socket, const QByteArray &request)
     // which travels in a header, is there for that.
     if (!authorised && m_settings.lanSimpleEnabled && !m_settings.lanSimpleKey.isEmpty()
         && head.startsWith("GET /")) {
-        const QByteArray ruta = head.mid(4, head.indexOf(' ', 4) - 4).trimmed();
-        const int pregunta = ruta.indexOf('?');
+        const QByteArray path = head.mid(4, head.indexOf(' ', 4) - 4).trimmed();
+        const int pregunta = path.indexOf('?');
         if (pregunta > 0) {
-            const QString verbo = QString::fromUtf8(ruta.left(pregunta)).mid(1);
-            QString clave;
-            const QList<QByteArray> campos = ruta.mid(pregunta + 1).split('&');
+            const QString verbo = QString::fromUtf8(path.left(pregunta)).mid(1);
+            QString key;
+            const QList<QByteArray> campos = path.mid(pregunta + 1).split('&');
             for (const QByteArray &campo : campos) {
-                // "password" is the documented name; "clave" is what the first
+                // "password" is the documented name; "key" is what the first
                 // version read, and what configure-search printed for months was
                 // "password" -- so the documented link did not work. Both now.
                 if (campo.startsWith("password=")) {
-                    clave = QString::fromUtf8(QByteArray::fromPercentEncoding(campo.mid(9)));
-                } else if (campo.startsWith("clave=")) {
-                    clave = QString::fromUtf8(QByteArray::fromPercentEncoding(campo.mid(6)));
+                    key = QString::fromUtf8(QByteArray::fromPercentEncoding(campo.mid(9)));
+                } else if (campo.startsWith("key=")) {
+                    key = QString::fromUtf8(QByteArray::fromPercentEncoding(campo.mid(6)));
                 }
             }
             const bool puede = verbo == QLatin1String("sonar") || verbo == QLatin1String("ring")
                 || verbo == QLatin1String("parar") || verbo == QLatin1String("stop");
-            if (!clave.isEmpty() && clave == m_settings.lanSimpleKey && !verbo.isEmpty()) {
+            if (!key.isEmpty() && key == m_settings.lanSimpleKey && !verbo.isEmpty()) {
                 if (!puede) {
                     respond(socket, 403,
                             QByteArray("the simple door only rings and stops; for anything else "
@@ -314,7 +314,7 @@ void LanServer::handle(QTcpSocket *socket, const QByteArray &request)
         return;
     }
 
-    if (head.startsWith("GET /estado")) {
+    if (head.startsWith("GET /state")) {
         respond(socket, 200, m_status ? m_status() : QByteArray("{}"));
         return;
     }

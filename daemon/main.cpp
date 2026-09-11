@@ -192,7 +192,7 @@ public:
             // The FIRST thing, before even opening the window: turn the screen
             // on. An alarm that rings in the dark leaves the stop button three
             // steps away, which is exactly what was in the way.
-            m_locker.despertarPantalla();
+            m_locker.wakeScreen();
 
             // Launched into ITS OWN cgroup, and that is not a detail.
             //
@@ -245,7 +245,7 @@ public:
         // The panel needs a FRESH position, not just to know the phone is alive.
         // The heartbeats already say the latter; this is the former.
         m_refresco.setSingleShot(true);
-        connect(&m_refresco, &QTimer::timeout, this, [this] { refrescarPosicion(); });
+        connect(&m_refresco, &QTimer::timeout, this, [this] { refreshPosition(); });
         m_lan.setResultProvider([this] { return m_motivoUltimaOrden; });
 
         // Somebody else's ntfy. Same contract as the other three: it reports an
@@ -254,8 +254,8 @@ public:
             runCommand(Channel::Ntfy, verb, QString());
         });
         connect(&m_relay, &RelayClient::paired, this,
-                [this](const QString &deviceId, const QString &token, const QString &huella) {
-                    LostPhoneConfig::savePairing(deviceId, token, huella);
+                [this](const QString &deviceId, const QString &token, const QString &fingerprint) {
+                    LostPhoneConfig::savePairing(deviceId, token, fingerprint);
                     reload();
                     qInfo() << "lost-phoned: paired with the relay";
                 });
@@ -442,20 +442,20 @@ private Q_SLOTS:
         }
         const QVariantMap properties = readProperties(modem, kMessagingIface);
         const QDBusArgument list = properties.value(QStringLiteral("Messages")).value<QDBusArgument>();
-        QList<QDBusObjectPath> mensajes;
-        list >> mensajes;
+        QList<QDBusObjectPath> messages;
+        list >> messages;
 
-        for (const QDBusObjectPath &path : mensajes) {
+        for (const QDBusObjectPath &path : messages) {
             const QVariantMap sms = readProperties(path.path(), kSmsIface);
             // MMSmsState: 3 is "received". Anything else is one we sent or one
             // still arriving.
             if (sms.value(QStringLiteral("State")).toInt() != 3) {
                 continue;
             }
-            const QDateTime cuando =
+            const QDateTime when =
                 QDateTime::fromString(sms.value(QStringLiteral("Timestamp")).toString(),
                                       Qt::ISODate);
-            if (cuando.isValid() && cuando.secsTo(QDateTime::currentDateTime()) > 5 * 60) {
+            if (when.isValid() && when.secsTo(QDateTime::currentDateTime()) > 5 * 60) {
                 continue;
             }
             qInfo() << "lost-phoned: picking up an SMS that arrived while starting up";
@@ -489,12 +489,12 @@ private Q_SLOTS:
         handleSms(path.path(), 0);
     }
 
-    // The SMS that answers "estado": a single line with what helps find it, and
+    // The SMS that answers "state": a single line with what helps find it, and
     // no filler. It fits in one SMS and reads at a glance.
-    QString respuestaEstado(const Fix &fix) const
+    QString statusAnswer(const Fix &fix) const
     {
         QStringList partes;
-        if (m_estadoConPosicion && fix.hasCoordinates) {
+        if (m_statusWithPosition && fix.hasCoordinates) {
             partes << QStringLiteral("%1,%2 (+-%3m)")
                           .arg(fix.latitude, 0, 'f', 5)
                           .arg(fix.longitude, 0, 'f', 5)
@@ -506,7 +506,7 @@ private Q_SLOTS:
                 partes << QStringLiteral("LAST from ")
                         + fix.when.toString(QStringLiteral("HH:mm"));
             }
-        } else if (m_estadoConPosicion) {
+        } else if (m_statusWithPosition) {
             partes << QStringLiteral("no GPS");
         }
 
@@ -522,7 +522,7 @@ private Q_SLOTS:
         if (fix.batteryPercent >= 0) {
             partes << QStringLiteral("bat %1%%2")
                           .arg(fix.batteryPercent)
-                          .arg(cargando() ? QStringLiteral(" charging") : QString());
+                          .arg(loading() ? QStringLiteral(" charging") : QString());
         }
         if (m_ringer.ringing()) {
             partes << QStringLiteral("RINGING");
@@ -536,12 +536,12 @@ private Q_SLOTS:
 
     // Plugged in or not. It helps place it more than it seems: a charging phone
     // is somewhere that somebody plugged it in.
-    bool cargando() const
+    bool loading() const
     {
         const QDir dir(QStringLiteral("/sys/class/power_supply"));
-        const QStringList entradas = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
-        for (const QString &entrada : entradas) {
-            QFile f(dir.filePath(entrada) + QStringLiteral("/status"));
+        const QStringList entries = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const QString &input : entries) {
+            QFile f(dir.filePath(input) + QStringLiteral("/status"));
             if (f.open(QIODevice::ReadOnly)) {
                 if (QString::fromUtf8(f.readAll()).trimmed() == QLatin1String("Charging")) {
                     return true;
@@ -552,7 +552,7 @@ private Q_SLOTS:
     }
 
     // How often to refresh, in milliseconds. Zero = never.
-    int intervaloRefresco() const
+    int refreshInterval() const
     {
         const int minutos = m_lost.active ? m_settings.relayReportLostMinutes
                                           : m_settings.relayReportMinutes;
@@ -561,7 +561,7 @@ private Q_SLOTS:
 
     void armarRefresco()
     {
-        const int ms = intervaloRefresco();
+        const int ms = refreshInterval();
         if (ms <= 0) {
             m_refresco.stop();
             return;
@@ -575,7 +575,7 @@ private Q_SLOTS:
     // every half hour and for ever, and leaving the GPS on in perpetuity for a
     // background refresh would trade the phone's battery for a convenience. When
     // somebody is really looking for it, that order does turn everything on.
-    void refrescarPosicion()
+    void refreshPosition()
     {
         if (!m_started || m_locator.busy()) {
             armarRefresco();
@@ -592,11 +592,11 @@ private Q_SLOTS:
 
     void onLocated(const Fix &fix)
     {
-        if (!m_estadoPara.isEmpty()) {
-            const QString texto = respuestaEstado(fix);
-            qInfo().noquote() << "lost-phoned: answering the status:" << texto;
-            sendSms(m_estadoPara, texto);
-            m_estadoPara.clear();
+        if (!m_statusFor.isEmpty()) {
+            const QString text = statusAnswer(fix);
+            qInfo().noquote() << "lost-phoned: answering the status:" << text;
+            sendSms(m_statusFor, text);
+            m_statusFor.clear();
         }
 
         qInfo().noquote() << "lost-phoned: position:" << fix.toSms();
@@ -813,7 +813,7 @@ private:
             // NO reply, and on purpose. An order must not cost anyone money:
             // whoever sends "sonar" is hearing the result, and confirming it by
             // SMS is charging them to be told what they already know. Only
-            // "estado" gets an answer, which is the only thing that is ASKED
+            // "state" gets an answer, which is the only thing that is ASKED
             // rather than sent. If something fails, it goes in the journal.
             if (!m_ringer.start(m_settings.ringSeconds)) {
                 qWarning() << "lost-phoned: could not make the speaker ring";
@@ -899,9 +899,9 @@ private:
             qWarning() << "lost-phoned: POWERING OFF the phone by order of the panel";
             m_locker.showMessage(
                 QStringLiteral("Powering off the phone by order of your panel."));
-            Proceso::salida(QStringLiteral("systemctl"), {QStringLiteral("poweroff")}, 10000);
-        } else if (verb == QLatin1String("estado") || verb == QLatin1String("status")) {
-            // "estado" is THE question, and the only one it answers. That is why
+            Proc::output(QStringLiteral("systemctl"), {QStringLiteral("poweroff")}, 10000);
+        } else if (verb == QLatin1String("state") || verb == QLatin1String("status")) {
+            // "state" is THE question, and the only one it answers. That is why
             // it brings everything at once -- position, battery, network and what
             // state it is in -- instead of forcing three SMS to learn three
             // things.
@@ -909,8 +909,8 @@ private:
             // It carries coordinates ONLY if that channel is allowed to locate.
             // Otherwise, answering the position here would be a back door to the
             // "may say where it is" switch.
-            m_estadoPara = smsReplyTo;
-            m_estadoConPosicion =
+            m_statusFor = smsReplyTo;
+            m_statusWithPosition =
                 LostPhoneConfig::allows(m_settings, channel, Capability::Locate);
             m_locator.locate(m_settings);
         } else {
@@ -931,19 +931,19 @@ private:
     QByteArray lanStatus()
     {
         const LastKnown &l = m_settings.lastKnown;
-        QString posicion = QStringLiteral("null");
+        QString position = QStringLiteral("null");
         if (m_settings.lanAllowLocate && l.valid) {
-            posicion = QStringLiteral(
+            position = QStringLiteral(
                            "{\"latitud\":%1,\"longitud\":%2,\"precision_metros\":%3,"
-                           "\"origen\":\"%4\",\"cuando\":\"%5\"}")
+                           "\"origen\":\"%4\",\"when\":\"%5\"}")
                            .arg(l.latitude, 0, 'f', 5)
                            .arg(l.longitude, 0, 'f', 5)
                            .arg(l.accuracyMeters)
                            .arg(l.source, l.when.toString(Qt::ISODate));
         }
-        return QStringLiteral("{\"sonando\":%1,\"perdido\":%2,\"ultima\":%3}")
+        return QStringLiteral("{\"ringing\":%1,\"perdido\":%2,\"ultima\":%3}")
             .arg(m_ringer.ringing() ? QStringLiteral("true") : QStringLiteral("false"),
-                 m_lost.active ? QStringLiteral("true") : QStringLiteral("false"), posicion)
+                 m_lost.active ? QStringLiteral("true") : QStringLiteral("false"), position)
             .toUtf8();
     }
 
@@ -1039,11 +1039,11 @@ private:
     QDateTime m_lastCommand;
     QString m_replyTo;
 
-    // Who to answer the "estado" to, and whether that channel may give coordinates.
-    QString m_estadoPara;
+    // Who to answer the "state" to, and whether that channel may give coordinates.
+    QString m_statusFor;
     // Empty = the last order ran. Otherwise, why it did not.
     QString m_motivoUltimaOrden;
-    bool m_estadoConPosicion = false;
+    bool m_statusWithPosition = false;
     // Who asked for the position that is being worked out right now. A fix
     // takes up to a minute and a half, so the answer has to remember where to
     // go: back down the SMS it came from, up to the relay, or both.

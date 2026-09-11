@@ -11,14 +11,14 @@ AQUI="$(cd "$(dirname "$0")" && pwd)"
 SRC="$AQUI/.."
 PMB="${PMB:-$HOME/src/pmbootstrap/pmbootstrap.py}"
 CHROOT="${CHROOT:-$HOME/.local/var/pmbootstrap/chroot_buildroot_aarch64}"
-DENTRO=/tmp/lost-phone-test
+INSIDE=/tmp/lost-phone-test
 
 [ -x "$PMB" ] || [ -f "$PMB" ] || { echo "cannot find pmbootstrap; pass it with PMB=/path/pmbootstrap.py" >&2; exit 1; }
 
 echo "== preparing the aarch64 chroot =="
 python3 "$PMB" chroot -b aarch64 --add qt6-qtbase-dev,build-base,kconfig-dev -- true
 
-sudo mkdir -p "$CHROOT$DENTRO"
+sudo mkdir -p "$CHROOT$INSIDE"
 sudo cp "$SRC"/src/config.cpp "$SRC"/src/config.h \
         "$SRC"/src/nmea.cpp "$SRC"/src/nmea.h \
         "$SRC"/src/lostmode.cpp "$SRC"/src/lostmode.h \
@@ -26,24 +26,24 @@ sudo cp "$SRC"/src/config.cpp "$SRC"/src/config.h \
         "$SRC"/src/lanserver.cpp "$SRC"/src/lanserver.h "$SRC"/src/dbus.h \
         "$AQUI"/test_config.cpp "$AQUI"/test_nmea.cpp "$AQUI"/test_lostmode.cpp \
         "$AQUI"/test_ntfy.cpp "$AQUI"/test_lanserver.cpp \
-        "$CHROOT$DENTRO/"
+        "$CHROOT$INSIDE/"
 
 INC="-I. -I/usr/include/qt6 -I/usr/include/qt6/QtCore -I/usr/include/qt6/QtDBus"
 INC="$INC -I/usr/include/KF6/KConfigCore -I/usr/include/KF6/KConfig"
 
 python3 "$PMB" chroot -b aarch64 -- sh -c "
 set -e
-cd $DENTRO
-fallos=0
+cd $INSIDE
+failures=0
 compilar_y_correr() {
-    nombre=\"\$1\"; shift
-    printf '\n=== %s ===\n' \"\$nombre\"
-    g++ -std=c++20 -fPIC $INC \"\$@\" -lQt6Core -lQt6DBus -lKF6ConfigCore -o prueba || {
-        echo \"  DOES NOT COMPILE\"; fallos=1; return 1
+    name=\"\$1\"; shift
+    printf '\n=== %s ===\n' \"\$name\"
+    g++ -std=c++20 -fPIC $INC \"\$@\" -lQt6Core -lQt6DBus -lKF6ConfigCore -o test || {
+        echo \"  DOES NOT COMPILE\"; failures=1; return 1
     }
-    ./prueba || fallos=1
+    ./test || failures=1
 }
-compilar_y_correr ajustes test_config.cpp config.cpp
+compilar_y_correr settings test_config.cpp config.cpp
 compilar_y_correr nmea    test_nmea.cpp   nmea.cpp
 compilar_y_correr perdido test_lostmode.cpp lostmode.cpp
 compilar_y_correr ntfy    test_ntfy.cpp   ntfyprotocol.cpp
@@ -58,14 +58,14 @@ MOC=\$(command -v moc || echo /usr/lib/qt6/libexec/moc)
 \$MOC lanserver.h -o moc_lanserver.cpp
 if g++ -std=c++20 -fPIC $INC -I/usr/include/qt6/QtNetwork \
     test_lanserver.cpp lanserver.cpp config.cpp moc_lanserver.cpp \
-    -lQt6Core -lQt6DBus -lQt6Network -lKF6ConfigCore -o prueba_lan
+    -lQt6Core -lQt6DBus -lQt6Network -lKF6ConfigCore -o test_lan
 then
-    ./prueba_lan || fallos=1
+    ./test_lan || failures=1
 else
     echo \"  DOES NOT COMPILE -- the home channel test was NOT run\"
-    fallos=1
+    failures=1
 fi
-exit \$fallos
+exit \$failures
 "
 echo
 echo "== all green =="

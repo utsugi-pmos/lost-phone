@@ -106,7 +106,7 @@ ColumnLayout {
             Layout.fillWidth: true
             Layout.leftMargin: Kirigami.Units.smallSpacing
             Layout.rightMargin: Kirigami.Units.smallSpacing
-            text: i18n("The case that actually happens: it is on the sofa. No server, no internet and no SMS — the phone announces itself on your wifi and you find it from the computer with «buscar-mi-movil sonar».")
+            text: i18n("The case that actually happens: it is on the sofa. No server, no internet and no SMS — the phone announces itself on your wifi and you find it from the computer with «find_it-mi-phone sonar».")
             wrapMode: Text.WordWrap
             font: Kirigami.Theme.smallFont
             opacity: 0.7
@@ -141,7 +141,7 @@ ColumnLayout {
                 Layout.fillWidth: true
                 visible: root.backend.lanEnabled && root.backend.lanToken.length > 0
                 type: Kirigami.MessageType.Information
-                text: i18n("From the computer, just once: «setup/buscar-mi-movil --emparejar». It brings the token over the cable, with nothing to type.")
+                text: i18n("From the computer, just once: «setup/find_it-mi-phone --emparejar». It brings the token over the cable, with nothing to type.")
             }
 
             RowLayout {
@@ -575,13 +575,13 @@ ColumnLayout {
                 Layout.fillWidth: true
                 Layout.leftMargin: Kirigami.Units.smallSpacing
                 model: [
-                    { texto: i18n("Always connected — obeys instantly (recommended)"), minutos: 0 },
-                    { texto: i18n("Every 5 min — may take 5 min to obey"), minutos: 5 },
-                    { texto: i18n("Every 15 min — may take 15 min"), minutos: 15 },
-                    { texto: i18n("Every 30 min — may take half an hour"), minutos: 30 },
-                    { texto: i18n("Every hour — may take an hour"), minutos: 60 }
+                    { text: i18n("Always connected — obeys instantly (recommended)"), minutos: 0 },
+                    { text: i18n("Every 5 min — may take 5 min to obey"), minutos: 5 },
+                    { text: i18n("Every 15 min — may take 15 min"), minutos: 15 },
+                    { text: i18n("Every 30 min — may take half an hour"), minutos: 30 },
+                    { text: i18n("Every hour — may take an hour"), minutos: 60 }
                 ]
-                textRole: "texto"
+                textRole: "text"
                 currentIndex: {
                     const m = root.backend.relayIdleMinutes
                     if (m <= 0) return 0
@@ -843,7 +843,7 @@ ColumnLayout {
             }
         }
 
-        // --------------------------------------------------------------- sonido
+        // --------------------------------------------------------------- sound
         Kirigami.ListSectionHeader {
             Layout.fillWidth: true
             text: i18n("The sound")
@@ -873,13 +873,13 @@ ColumnLayout {
 
             QQC2.ComboBox {
                 Layout.preferredWidth: Kirigami.Units.gridUnit * 11
-                model: root.backend.sonidos
-                textRole: "nombre"
-                valueRole: "ruta"
+                model: root.backend.sounds
+                textRole: "name"
+                valueRole: "path"
                 currentIndex: {
-                    const lista = root.backend.sonidos
+                    const lista = root.backend.sounds
                     for (let i = 0; i < lista.length; i++) {
-                        if (lista[i].ruta === root.backend.ringSound) {
+                        if (lista[i].path === root.backend.ringSound) {
                             return i
                         }
                     }

@@ -147,9 +147,9 @@ void Ringer::restoreSavedVolume()
     const QString sink = saved.size() >= 3 && !saved.at(2).isEmpty()
         ? saved.at(2)
         : QStringLiteral("@DEFAULT_SINK@");
-    Proceso::salida(QStringLiteral("pactl"),
+    Proc::output(QStringLiteral("pactl"),
         {QStringLiteral("set-sink-volume"), sink, saved.at(0)});
-    Proceso::salida(QStringLiteral("pactl"),
+    Proc::output(QStringLiteral("pactl"),
         {QStringLiteral("set-sink-mute"), sink, saved.at(1)});
 }
 
@@ -163,26 +163,26 @@ void Ringer::restoreSavedVolume()
 // If none is found -- another phone, other names -- it falls back to the default
 // output, which is worse but is something. Staying silent because the name does not
 // match would be the worst possible failure here.
-QString Ringer::altavoz()
+QString Ringer::speaker()
 {
-    const QString listado = Proceso::salida(QStringLiteral("pactl"),
+    const QString listado = Proc::output(QStringLiteral("pactl"),
         {QStringLiteral("list"), QStringLiteral("short"), QStringLiteral("sinks")});
-    const QStringList lineas = listado.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+    const QStringList lines = listado.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
     QString respaldo;
-    for (const QString &linea : lineas) {
-        const QStringList campos = linea.split(QLatin1Char('\t'), Qt::SkipEmptyParts);
+    for (const QString &line : lines) {
+        const QStringList campos = line.split(QLatin1Char('\t'), Qt::SkipEmptyParts);
         if (campos.size() < 2) {
             continue;
         }
-        const QString nombre = campos.at(1);
-        if (nombre.contains(QLatin1String("Speaker"), Qt::CaseInsensitive)
-            || nombre.contains(QLatin1String("speaker"), Qt::CaseInsensitive)) {
-            return nombre;
+        const QString name = campos.at(1);
+        if (name.contains(QLatin1String("Speaker"), Qt::CaseInsensitive)
+            || name.contains(QLatin1String("speaker"), Qt::CaseInsensitive)) {
+            return name;
         }
         // An output from the board itself, in case the profile does not say "Speaker".
-        if (respaldo.isEmpty() && nombre.startsWith(QLatin1String("alsa_output."))
-            && !nombre.contains(QLatin1String("bluez"), Qt::CaseInsensitive)) {
-            respaldo = nombre;
+        if (respaldo.isEmpty() && name.startsWith(QLatin1String("alsa_output."))
+            && !name.contains(QLatin1String("bluez"), Qt::CaseInsensitive)) {
+            respaldo = name;
         }
     }
     if (!respaldo.isEmpty()) {
@@ -193,13 +193,13 @@ QString Ringer::altavoz()
 
 void Ringer::raiseVolume()
 {
-    m_sink = altavoz();
+    m_sink = speaker();
     qInfo().noquote() << "lost-phoned: the alarm will ring through" << m_sink;
 
     // Read first, so the restore has something true to go back to.
-    const QString volume = Proceso::salida(QStringLiteral("pactl"),
+    const QString volume = Proc::output(QStringLiteral("pactl"),
                                {QStringLiteral("get-sink-volume"), m_sink});
-    const QString mute = Proceso::salida(QStringLiteral("pactl"),
+    const QString mute = Proc::output(QStringLiteral("pactl"),
                              {QStringLiteral("get-sink-mute"), m_sink});
     if (!volume.isEmpty() && !mute.isEmpty()) {
         // "Volume: mono: 0 /   0% / -inf dB" -> "0%"
@@ -234,9 +234,9 @@ void Ringer::raiseVolume()
         }
     }
 
-    Proceso::salida(QStringLiteral("pactl"),
+    Proc::output(QStringLiteral("pactl"),
         {QStringLiteral("set-sink-mute"), m_sink, QStringLiteral("0")});
-    Proceso::salida(QStringLiteral("pactl"), {QStringLiteral("set-sink-volume"), m_sink,
+    Proc::output(QStringLiteral("pactl"), {QStringLiteral("set-sink-volume"), m_sink,
                                   QStringLiteral("%1%").arg(qBound(1, m_settings.ringVolume, 100))});
 }
 
@@ -248,9 +248,9 @@ void Ringer::restoreVolume()
     }
     // To the SAME output that was raised, not the default one.
     const QString sink = m_sink.isEmpty() ? QStringLiteral("@DEFAULT_SINK@") : m_sink;
-    Proceso::salida(QStringLiteral("pactl"),
+    Proc::output(QStringLiteral("pactl"),
         {QStringLiteral("set-sink-volume"), sink, m_savedVolume});
-    Proceso::salida(QStringLiteral("pactl"),
+    Proc::output(QStringLiteral("pactl"),
         {QStringLiteral("set-sink-mute"), sink, m_savedMute});
     QFile::remove(savedVolumePath());
     qInfo().noquote() << "lost-phoned: volume put back to" << m_savedVolume << "muted:"
