@@ -247,7 +247,7 @@ void LanServer::handle(QTcpSocket *socket, const QByteArray &request)
         }
     }
 
-    // The simple door: GET /sonar?clave=...
+    // The simple door: GET /ring?password=...
     //
     // Checked BEFORE rejecting for a missing token, and after the first line of
     // the headers has been pulled out. It is deliberately the dumbest thing that
@@ -274,7 +274,12 @@ void LanServer::handle(QTcpSocket *socket, const QByteArray &request)
             QString clave;
             const QList<QByteArray> campos = ruta.mid(pregunta + 1).split('&');
             for (const QByteArray &campo : campos) {
-                if (campo.startsWith("clave=")) {
+                // "password" is the documented name; "clave" is what the first
+                // version read, and what configure-search printed for months was
+                // "password" -- so the documented link did not work. Both now.
+                if (campo.startsWith("password=")) {
+                    clave = QString::fromUtf8(QByteArray::fromPercentEncoding(campo.mid(9)));
+                } else if (campo.startsWith("clave=")) {
                     clave = QString::fromUtf8(QByteArray::fromPercentEncoding(campo.mid(6)));
                 }
             }
