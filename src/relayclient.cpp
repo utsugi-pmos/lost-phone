@@ -175,7 +175,13 @@ void RelayClient::poll()
         if (status == 200) {
             const QJsonObject body =
                 QJsonDocument::fromJson(reply->readAll()).object();
-            const QString verb = body.value(QStringLiteral("orden")).toString();
+            // "command" since 2026-09-11; "orden" is what a relay that has not
+            // been redeployed yet answers. Both, so a phone is never deaf to its
+            // own alarm because of the order things were deployed in.
+            QString verb = body.value(QStringLiteral("command")).toString();
+            if (verb.isEmpty()) {
+                verb = body.value(QStringLiteral("orden")).toString();
+            }
             if (!verb.isEmpty()) {
                 Q_EMIT command(verb);
             }
@@ -198,15 +204,15 @@ void RelayClient::report(const Fix &fix)
         return;
     }
     QJsonObject body{
-        {QStringLiteral("cuando"), fix.when.toUTC().toString(Qt::ISODate)},
-        {QStringLiteral("tiene_coordenadas"), fix.hasCoordinates},
-        {QStringLiteral("latitud"), fix.latitude},
-        {QStringLiteral("longitud"), fix.longitude},
-        {QStringLiteral("precision_metros"), fix.accuracyMeters},
-        {QStringLiteral("origen"), fix.source},
-        {QStringLiteral("celda"), fix.cell},
+        {QStringLiteral("when"), fix.when.toUTC().toString(Qt::ISODate)},
+        {QStringLiteral("has_coordinates"), fix.hasCoordinates},
+        {QStringLiteral("latitude"), fix.latitude},
+        {QStringLiteral("longitude"), fix.longitude},
+        {QStringLiteral("accuracy_m"), fix.accuracyMeters},
+        {QStringLiteral("source"), fix.source},
+        {QStringLiteral("cell"), fix.cell},
         {QStringLiteral("wifi"), fix.wifi},
-        {QStringLiteral("bateria"), fix.batteryPercent},
+        {QStringLiteral("battery"), fix.batteryPercent},
     };
 
     QNetworkRequest request(endpoint(QStringLiteral("/api/device/report")));
@@ -318,8 +324,8 @@ void RelayClient::pair(const QString &url, const QString &code, const QString &n
     sinHttp2(request);
 
     const QJsonObject body{
-        {QStringLiteral("codigo"), code.trimmed().toLower()},
-        {QStringLiteral("nombre"), name},
+        {QStringLiteral("code"), code.trimmed().toLower()},
+        {QStringLiteral("name"), name},
     };
 
     m_huellaVista.clear();
@@ -328,7 +334,10 @@ void RelayClient::pair(const QString &url, const QString &code, const QString &n
     connect(reply, &QNetworkReply::finished, this, [this, reply] {
         reply->deleteLater();
         const QJsonObject answer = QJsonDocument::fromJson(reply->readAll()).object();
-        const QString token = answer.value(QStringLiteral("testigo")).toString();
+        QString token = answer.value(QStringLiteral("token")).toString();
+        if (token.isEmpty()) {
+            token = answer.value(QStringLiteral("testigo")).toString();
+        }
         if (token.isEmpty()) {
             const QString why = answer.value(QStringLiteral("error")).toString();
             Q_EMIT pairingFailed(why.isEmpty() ? reply->errorString() : why);

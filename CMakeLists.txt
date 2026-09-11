@@ -18,7 +18,7 @@
 # Built natively on the surya, like smart-unlock:
 #   cmake -S . -B build -G Ninja && cmake --build build
 cmake_minimum_required(VERSION 3.20)
-project(lost-phone VERSION 1.1)
+project(lost-phone VERSION 1.2)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
