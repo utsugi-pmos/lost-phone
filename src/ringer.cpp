@@ -2,7 +2,7 @@
 
 #include "ringer.h"
 
-#include "proceso.h"
+#include "process.h"
 
 #include <QDebug>
 #include <QDir>

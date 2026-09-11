@@ -389,7 +389,7 @@ Worse: **all the tests over SSH passed**. An SSH session carries no language, so
 whoever tested saw English and the daemon saw Spanish. A different environment from
 the one that failed was being measured.
 
-That is why there is a single `src/proceso.h`: **nothing in this package launches a
+That is why there is a single `src/process.h`: **nothing in this package launches a
 program whose output is read any other way**, and that function sets `LC_ALL=C`.
 `mmcli` and `nmcli`, where the cell and the wifi networks come from, have the same
 trap waiting.
