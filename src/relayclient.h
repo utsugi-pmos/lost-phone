@@ -58,8 +58,8 @@ private:
     // instant is the worst possible moment to lose data: the phone HAS FIXED, knows
     // where it is, and goes quiet for half an hour until the next refresh. It is
     // saved and sent the moment the connection shows signs of life again.
-    Fix m_sinEntregar;
-    bool m_hayPendiente = false;
+    Fix m_undelivered;
+    bool m_hasPending = false;
 
 public:
 
@@ -83,7 +83,7 @@ private:
 
     // Pins the relay certificate, or accepts it for the first time if we are
     // pairing. Everything that talks to the relay goes through here.
-    void confiar(QNetworkReply *reply, bool primeraVez);
+    void trust(QNetworkReply *reply, bool firstTime);
 
     // The fingerprint seen during pairing, until it is saved.
     QString m_seenFingerprint;

@@ -165,28 +165,28 @@ void Ringer::restoreSavedVolume()
 // match would be the worst possible failure here.
 QString Ringer::speaker()
 {
-    const QString listado = Proc::output(QStringLiteral("pactl"),
+    const QString listing = Proc::output(QStringLiteral("pactl"),
         {QStringLiteral("list"), QStringLiteral("short"), QStringLiteral("sinks")});
-    const QStringList lines = listado.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
-    QString respaldo;
+    const QStringList lines = listing.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+    QString fallback;
     for (const QString &line : lines) {
-        const QStringList campos = line.split(QLatin1Char('\t'), Qt::SkipEmptyParts);
-        if (campos.size() < 2) {
+        const QStringList fields = line.split(QLatin1Char('\t'), Qt::SkipEmptyParts);
+        if (fields.size() < 2) {
             continue;
         }
-        const QString name = campos.at(1);
+        const QString name = fields.at(1);
         if (name.contains(QLatin1String("Speaker"), Qt::CaseInsensitive)
             || name.contains(QLatin1String("speaker"), Qt::CaseInsensitive)) {
             return name;
         }
         // An output from the board itself, in case the profile does not say "Speaker".
-        if (respaldo.isEmpty() && name.startsWith(QLatin1String("alsa_output."))
+        if (fallback.isEmpty() && name.startsWith(QLatin1String("alsa_output."))
             && !name.contains(QLatin1String("bluez"), Qt::CaseInsensitive)) {
-            respaldo = name;
+            fallback = name;
         }
     }
-    if (!respaldo.isEmpty()) {
-        return respaldo;
+    if (!fallback.isEmpty()) {
+        return fallback;
     }
     return QStringLiteral("@DEFAULT_SINK@");
 }
@@ -305,7 +305,7 @@ void Ringer::configure(const Settings &settings)
 QString Ringer::resolveSound()
 {
     const QString wanted = m_settings.ringSound;
-    if (!wanted.isEmpty() && wanted != QLatin1String("tono")) {
+    if (!wanted.isEmpty() && wanted != QLatin1String("tone")) {
         if (QFile::exists(wanted)) {
             return wanted;
         }

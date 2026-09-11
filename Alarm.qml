@@ -58,10 +58,10 @@ QQC2.ApplicationWindow {
                 source: "audio-volume-high"
                 implicitWidth: Kirigami.Units.iconSizes.huge
                 implicitHeight: Kirigami.Units.iconSizes.huge
-                opacity: latido.running ? 1 : 0.85
+                opacity: heartbeat.running ? 1 : 0.85
 
                 SequentialAnimation on scale {
-                    id: latido
+                    id: heartbeat
                     running: true
                     loops: Animation.Infinite
                     NumberAnimation { to: 1.12; duration: 420; easing.type: Easing.OutQuad }
@@ -90,7 +90,7 @@ QQC2.ApplicationWindow {
             // it is pressed by somebody who is holding a phone that will not
             // shut up, which is not the moment for a toolbar.
             QQC2.Button {
-                id: parar
+                id: stopButton
 
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: Kirigami.Units.gridUnit
@@ -104,7 +104,7 @@ QQC2.ApplicationWindow {
 
                 background: Rectangle {
                     radius: width / 2
-                    color: parar.down ? Qt.darker(Kirigami.Theme.negativeTextColor, 1.25)
+                    color: stopButton.down ? Qt.darker(Kirigami.Theme.negativeTextColor, 1.25)
                                       : Kirigami.Theme.negativeTextColor
                     Behavior on color { ColorAnimation { duration: 90 } }
                 }

@@ -40,17 +40,17 @@ int main(int argc, char **argv)
     {
         LostMode state;
         state.active = true;
-        state.message = QStringLiteral("Phone perdido, llama al 600 123 456");
+        state.message = QStringLiteral("Phone lost, call 600 123 456");
         state.since = QDateTime::currentDateTime();
         LostModeState::save(state);
 
         // Re-read from scratch, as the daemon would after a reboot: that is the
         // reason this exists.
-        const LostMode leido = LostModeState::load();
-        check("it survives re-reading the file", leido.active);
+        const LostMode read_back = LostModeState::load();
+        check("it survives re-reading the file", read_back.active);
         check("the message survives whole",
-                  leido.message == QLatin1String("Phone perdido, llama al 600 123 456"));
-        check("the time survives", leido.since.isValid());
+                  read_back.message == QLatin1String("Phone lost, call 600 123 456"));
+        check("the time survives", read_back.since.isValid());
     }
 
     std::printf("\n--- the contract with smart-unlock ---\n");
@@ -59,11 +59,11 @@ int main(int argc, char **argv)
         // this changes, the remote lock stops winning and nobody notices.
         QFile f(LostModeState::filePath());
         check("the file can be opened", f.open(QIODevice::ReadOnly));
-        const QString primera = QString::fromUtf8(f.readLine()).trimmed();
-        check("the first line is exactly 1", primera == QLatin1String("1"));
+        const QString first = QString::fromUtf8(f.readLine()).trimmed();
+        check("the first line is exactly 1", first == QLatin1String("1"));
         check("the path is the one smart-unlock looks for",
                   LostModeState::filePath().endsWith(
-                      QLatin1String("/lost-phone/modo-perdido")));
+                      QLatin1String("/lost-phone/lost-mode")));
     }
 
     std::printf("\n--- leaving lost mode ---\n");

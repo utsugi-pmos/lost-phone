@@ -102,10 +102,10 @@ void RelayClient::setConnected(bool connected)
     // The connection shows signs of life: if a position was left undelivered, this
     // is the moment. No timer of its own is needed -- the polling comes back on its
     // own, and when it comes back it is because there is network.
-    if (connected && m_hayPendiente) {
-        m_hayPendiente = false;
+    if (connected && m_hasPending) {
+        m_hasPending = false;
         qInfo() << "lost-phoned: retrying the position that was left unsent";
-        report(m_sinEntregar);
+        report(m_undelivered);
     }
 }
 
@@ -124,7 +124,7 @@ void RelayClient::poll()
     sinHttp2(request);
 
     QNetworkReply *reply = m_net.get(request);
-    confiar(reply, false);
+    trust(reply, false);
     m_poll = reply;
 
     // Connected the moment the poll goes out with a clean record behind it, not
@@ -228,7 +228,7 @@ void RelayClient::report(const Fix &fix)
     // position report silently. The phone shows up as connected in the panel,
     // because the polling does go through here, and the map never updates.
     // Everything looks fine and nothing works.
-    confiar(reply, false);
+    trust(reply, false);
 
     // And it says so if it goes wrong. Before it was fire and forget: if the relay
     // answered 401, or there was no network, no trace was left anywhere. The one
@@ -239,8 +239,8 @@ void RelayClient::report(const Fix &fix)
             qWarning().noquote() << "lost-phoned: could not send the position to the relay:"
                                  << reply->errorString() << "(HTTP" << codigo << ")"
                                  << "-- saving it for the next attempt";
-            m_sinEntregar = fix;
-            m_hayPendiente = true;
+            m_undelivered = fix;
+            m_hasPending = true;
         } else {
             qInfo() << "lost-phoned: position sent to the relay";
         }
@@ -262,22 +262,22 @@ void RelayClient::report(const Fix &fix)
 //
 // A TLS error other than the self-signed certificate one is never forgiven, not
 // even while pairing.
-void RelayClient::confiar(QNetworkReply *reply, bool primeraVez)
+void RelayClient::trust(QNetworkReply *reply, bool firstTime)
 {
     connect(reply, &QNetworkReply::sslErrors, this,
-            [this, reply, primeraVez](const QList<QSslError> &errores) {
-                if (errores.isEmpty()) {
+            [this, reply, firstTime](const QList<QSslError> &errors) {
+                if (errors.isEmpty()) {
                     return;
                 }
-                const QSslCertificate certificado = errores.first().certificate();
-                if (certificado.isNull()) {
+                const QSslCertificate certificate = errors.first().certificate();
+                if (certificate.isNull()) {
                     return;  // with no certificate there is nothing to pin
                 }
                 const QString fingerprint =
-                    QString::fromLatin1(certificado.digest(QCryptographicHash::Sha256).toHex(':'))
+                    QString::fromLatin1(certificate.digest(QCryptographicHash::Sha256).toHex(':'))
                         .toUpper();
 
-                for (const QSslError &error : errores) {
+                for (const QSslError &error : errors) {
                     // Only NOBODY having signed it is forgiven. A certificate that
                     // is expired, or for another name, or broken, is still a no.
                     if (error.error() != QSslError::SelfSignedCertificate
@@ -288,14 +288,14 @@ void RelayClient::confiar(QNetworkReply *reply, bool primeraVez)
                     }
                 }
 
-                if (primeraVez) {
+                if (firstTime) {
                     m_seenFingerprint = fingerprint;
-                    reply->ignoreSslErrors(errores);
+                    reply->ignoreSslErrors(errors);
                     return;
                 }
                 if (!m_settings.relayFingerprint.isEmpty()
                     && fingerprint == m_settings.relayFingerprint) {
-                    reply->ignoreSslErrors(errores);
+                    reply->ignoreSslErrors(errors);
                     return;
                 }
                 qWarning() << "lost-phoned: the relay presents ANOTHER certificate. Expected"
@@ -330,13 +330,13 @@ void RelayClient::pair(const QString &url, const QString &code, const QString &n
 
     m_seenFingerprint.clear();
     QNetworkReply *reply = m_net.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
-    confiar(reply, true);
+    trust(reply, true);
     connect(reply, &QNetworkReply::finished, this, [this, reply] {
         reply->deleteLater();
         const QJsonObject answer = QJsonDocument::fromJson(reply->readAll()).object();
         QString token = answer.value(QStringLiteral("token")).toString();
         if (token.isEmpty()) {
-            token = answer.value(QStringLiteral("testigo")).toString();
+            token = answer.value(QStringLiteral("token")).toString();
         }
         if (token.isEmpty()) {
             const QString why = answer.value(QStringLiteral("error")).toString();

@@ -83,12 +83,12 @@ void LostPhoneBackend::restoreDefaults()
 // 43 characters out of the full alphabet. Not meant to be read aloud.
 QString LostPhoneBackend::randomToken()
 {
-    const QString alfabeto = QStringLiteral(
+    const QString alphabet = QStringLiteral(
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
     QString token;
     token.reserve(43);
     for (int i = 0; i < 43; ++i) {
-        token.append(alfabeto.at(int(QRandomGenerator::system()->bounded(alfabeto.size()))));
+        token.append(alphabet.at(int(QRandomGenerator::system()->bounded(alphabet.size()))));
     }
     return token;
 }
@@ -114,15 +114,15 @@ QVariantList LostPhoneBackend::sounds() const
     // The generated tone first, because it does not depend on any file existing
     // and is the only one that stays if the sound theme is uninstalled.
     outside.append(QVariantMap{{QStringLiteral("name"), QStringLiteral("Shrill tone")},
-                             {QStringLiteral("path"), QStringLiteral("tono")}});
+                             {QStringLiteral("path"), QStringLiteral("tone")}});
 
-    const QStringList carpetas = {
+    const QStringList folders = {
         QStringLiteral("/usr/share/sounds/plasma-mobile/stereo/notifications"),
         QStringLiteral("/usr/share/sounds/plasma-mobile/stereo/ringtones"),
         QStringLiteral("/usr/share/sounds/freedesktop/stereo"),
     };
-    for (const QString &carpeta : carpetas) {
-        QDir dir(carpeta);
+    for (const QString &folder : folders) {
+        QDir dir(folder);
         const QStringList files =
             dir.entryList({QStringLiteral("*.oga"), QStringLiteral("*.ogg"),
                            QStringLiteral("*.wav")},

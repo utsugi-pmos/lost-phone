@@ -181,7 +181,7 @@ public:
                     qInfo() << "lost-phoned: lost mode; leaving the radios on";
                     return;
                 }
-                m_locator.devolverRadios();
+                m_locator.giveBackRadios();
                 return;
             }
             // A whole screen, not a notification. A notification is something
@@ -208,14 +208,14 @@ public:
             // own accounting. If that is not available the plain fork is still
             // better than no screen at all -- the limit below now has room for
             // both, so the fallback degrades instead of killing the alarm.
-            const bool lanzada = QProcess::startDetached(
+            const bool launched = QProcess::startDetached(
                 QStringLiteral("systemd-run"),
                 {QStringLiteral("--user"), QStringLiteral("--scope"), QStringLiteral("--collect"),
                  QStringLiteral("--quiet"), QStringLiteral("--"), QStringLiteral("lost-phone"),
-                 QStringLiteral("--alarma")});
-            if (!lanzada
+                 QStringLiteral("--alarm")});
+            if (!launched
                 && !QProcess::startDetached(QStringLiteral("lost-phone"),
-                                            {QStringLiteral("--alarma")})) {
+                                            {QStringLiteral("--alarm")})) {
                 qWarning() << "lost-phoned: could not open the alarm screen";
             }
         });
@@ -244,9 +244,9 @@ public:
 
         // The panel needs a FRESH position, not just to know the phone is alive.
         // The heartbeats already say the latter; this is the former.
-        m_refresco.setSingleShot(true);
-        connect(&m_refresco, &QTimer::timeout, this, [this] { refreshPosition(); });
-        m_lan.setResultProvider([this] { return m_motivoUltimaOrden; });
+        m_refresh.setSingleShot(true);
+        connect(&m_refresh, &QTimer::timeout, this, [this] { refreshPosition(); });
+        m_lan.setResultProvider([this] { return m_lastCommandReason; });
 
         // Somebody else's ntfy. Same contract as the other three: it reports an
         // order, it never decides whether it may be carried out.
@@ -381,8 +381,8 @@ private Q_SLOTS:
 
 
         // The orders that arrived while it was starting up, now that it can.
-        const QList<QPair<Channel, QString>> pendientes = m_pendientes;
-        m_pendientes.clear();
+        const QList<QPair<Channel, QString>> pending = m_pending;
+        m_pending.clear();
 
         catchUpSms();
         m_ringer.configure(m_settings);
@@ -400,9 +400,9 @@ private Q_SLOTS:
         // breaks the day something runs a little faster.
         if (LostPhoneConfig::allows(m_settings, Channel::Relay, Capability::Locate)) {
             m_locateForRelay = true;
-            m_locator.locate(m_settings, /*encender=*/false);
+            m_locator.locate(m_settings, /*turnOn=*/false);
         }
-        armarRefresco();
+        armRefresh();
 
         // Re-asserting lost mode is the whole point of writing it down: the
         // first thing somebody who picks up a stranger's phone does is restart
@@ -415,12 +415,12 @@ private Q_SLOTS:
             m_locker.showMessage(m_lost.message);
         }
 
-        for (const QPair<Channel, QString> &orden : pendientes) {
+        for (const QPair<Channel, QString> &command : pending) {
             qInfo().noquote() << "lost-phoned: running the order that arrived while starting up:"
-                              << orden.second.section(QLatin1Char(' '), 0, 0);
-            runCommand(orden.first, orden.second, m_pendienteSms.value(orden.second));
+                              << command.second.section(QLatin1Char(' '), 0, 0);
+            runCommand(command.first, command.second, m_pendingSms.value(command.second));
         }
-        m_pendienteSms.clear();
+        m_pendingSms.clear();
     }
 
     // Orders that arrived while the daemon was keeping its hands off everything.
@@ -493,45 +493,45 @@ private Q_SLOTS:
     // no filler. It fits in one SMS and reads at a glance.
     QString statusAnswer(const Fix &fix) const
     {
-        QStringList partes;
+        QStringList parts;
         if (m_statusWithPosition && fix.hasCoordinates) {
-            partes << QStringLiteral("%1,%2 (+-%3m)")
+            parts << QStringLiteral("%1,%2 (+-%3m)")
                           .arg(fix.latitude, 0, 'f', 5)
                           .arg(fix.longitude, 0, 'f', 5)
                           .arg(fix.accuracyMeters);
-            partes << QStringLiteral("osm.org/?mlat=%1&mlon=%2")
+            parts << QStringLiteral("osm.org/?mlat=%1&mlon=%2")
                           .arg(fix.latitude, 0, 'f', 5)
                           .arg(fix.longitude, 0, 'f', 5);
             if (fix.source == QLatin1String("last-known")) {
-                partes << QStringLiteral("LAST from ")
+                parts << QStringLiteral("LAST from ")
                         + fix.when.toString(QStringLiteral("HH:mm"));
             }
         } else if (m_statusWithPosition) {
-            partes << QStringLiteral("no GPS");
+            parts << QStringLiteral("no GPS");
         }
 
         // The network and the cell are what place the phone when the GPS does not
         // lock, and they say something coordinates do not: the NAME of the Wi-Fi
         // recognises a place instantly -- "HomeWiFi" is your home.
         if (!fix.wifi.isEmpty()) {
-            partes << QStringLiteral("wifi ") + fix.wifi;
+            parts << QStringLiteral("wifi ") + fix.wifi;
         }
         if (!fix.cell.isEmpty()) {
-            partes << QStringLiteral("cell ") + fix.cell;
+            parts << QStringLiteral("cell ") + fix.cell;
         }
         if (fix.batteryPercent >= 0) {
-            partes << QStringLiteral("bat %1%%2")
+            parts << QStringLiteral("bat %1%%2")
                           .arg(fix.batteryPercent)
                           .arg(loading() ? QStringLiteral(" charging") : QString());
         }
         if (m_ringer.ringing()) {
-            partes << QStringLiteral("RINGING");
+            parts << QStringLiteral("RINGING");
         }
         if (m_lost.active) {
-            partes << QStringLiteral("LOST");
+            parts << QStringLiteral("LOST");
         }
-        partes << fix.when.toString(QStringLiteral("HH:mm"));
-        return partes.join(QStringLiteral(", "));
+        parts << fix.when.toString(QStringLiteral("HH:mm"));
+        return parts.join(QStringLiteral(", "));
     }
 
     // Plugged in or not. It helps place it more than it seems: a charging phone
@@ -554,19 +554,19 @@ private Q_SLOTS:
     // How often to refresh, in milliseconds. Zero = never.
     int refreshInterval() const
     {
-        const int minutos = m_lost.active ? m_settings.relayReportLostMinutes
+        const int minutes = m_lost.active ? m_settings.relayReportLostMinutes
                                           : m_settings.relayReportMinutes;
-        return minutos > 0 ? minutos * 60 * 1000 : 0;
+        return minutes > 0 ? minutes * 60 * 1000 : 0;
     }
 
-    void armarRefresco()
+    void armRefresh()
     {
         const int ms = refreshInterval();
         if (ms <= 0) {
-            m_refresco.stop();
+            m_refresh.stop();
             return;
         }
-        m_refresco.start(ms);
+        m_refresh.start(ms);
     }
 
     // A fix on its own, so the panel's map does not go stale.
@@ -578,16 +578,16 @@ private Q_SLOTS:
     void refreshPosition()
     {
         if (!m_started || m_locator.busy()) {
-            armarRefresco();
+            armRefresh();
             return;
         }
         if (!LostPhoneConfig::allows(m_settings, Channel::Relay, Capability::Locate)) {
-            armarRefresco();
+            armRefresh();
             return;
         }
         m_locateForRelay = true;
-        m_locator.locate(m_settings, /*encender=*/false);
-        armarRefresco();
+        m_locator.locate(m_settings, /*turnOn=*/false);
+        armRefresh();
     }
 
     void onLocated(const Fix &fix)
@@ -781,7 +781,7 @@ private:
         // By default, it was NOT done. Every early return leaves its reason here
         // and only the end of the function clears it. That way the home channel
         // can answer what actually happened instead of a routine "ok".
-        m_motivoUltimaOrden = QStringLiteral("I do not understand it");
+        m_lastCommandReason = QStringLiteral("I do not understand it");
 
         // Still starting up: note it down and do it when done. Losing the order
         // would be worse, because the minute after a reboot is exactly when
@@ -790,15 +790,15 @@ private:
         if (!m_started) {
             qInfo().noquote() << "lost-phoned: order received while starting up, saving it:"
                               << rawVerb.section(QLatin1Char(' '), 0, 0);
-            m_pendientes.append({channel, rawVerb});
+            m_pending.append({channel, rawVerb});
             if (!smsReplyTo.isEmpty()) {
-                m_pendienteSms.insert(rawVerb, smsReplyTo);
+                m_pendingSms.insert(rawVerb, smsReplyTo);
             }
-            m_motivoUltimaOrden = QStringLiteral("still starting up; it is noted down");
+            m_lastCommandReason = QStringLiteral("still starting up; it is noted down");
             return;
         }
 
-        // "bloquear llama al 600 123 456": the verb is the first word and the
+        // "lock call 600 123 456": the verb is the first word and the
         // rest is its argument, which for locking is the message a stranger
         // reads on the lock screen.
         const QString trimmed = rawVerb.trimmed();
@@ -807,7 +807,7 @@ private:
 
         if (verb == QLatin1String("sonar") || verb == QLatin1String("ring")) {
             if (!LostPhoneConfig::allows(m_settings, channel, Capability::Ring)) {
-                m_motivoUltimaOrden = QStringLiteral("this channel cannot make it ring");
+                m_lastCommandReason = QStringLiteral("this channel cannot make it ring");
                 return;
             }
             // NO reply, and on purpose. An order must not cost anyone money:
@@ -821,7 +821,7 @@ private:
             // And after ringing, let itself be found. AFTER and not before:
             // whoever sends "sonar" wants noise NOW, and turning Wi-Fi on can
             // take several seconds. The order matters more than it seems.
-            QTimer::singleShot(500, this, [this] { m_locator.encenderLoNecesario(); });
+            QTimer::singleShot(500, this, [this] { m_locator.turnOnWhatIsNeeded(); });
         } else if (verb == QLatin1String("parar") || verb == QLatin1String("stop")) {
             // Silencing is deliberately NOT available over SMS. Whoever is
             // holding the phone can read the key off the screen of the message
@@ -831,18 +831,18 @@ private:
             // PIN. The cost is real and was accepted: a phone ringing in a
             // cinema needs the panel or the PIN, not just any handset.
             if (channel == Channel::Sms) {
-                m_motivoUltimaOrden = QStringLiteral("stopping is not possible over SMS, on purpose");
+                m_lastCommandReason = QStringLiteral("stopping is not possible over SMS, on purpose");
                 return;
             }
             if (!LostPhoneConfig::allows(m_settings, channel, Capability::Ring)) {
-                m_motivoUltimaOrden = QStringLiteral("this channel cannot stop it");
+                m_lastCommandReason = QStringLiteral("this channel cannot stop it");
                 return;
             }
             m_ringer.stop();  // no reply: it costs money and adds nothing
         } else if (verb == QLatin1String("donde") || verb == QLatin1String("where")
                    || verb == QLatin1String("locate")) {
             if (!LostPhoneConfig::allows(m_settings, channel, Capability::Locate)) {
-                m_motivoUltimaOrden = QStringLiteral("this channel cannot locate it");
+                m_lastCommandReason = QStringLiteral("this channel cannot locate it");
                 return;
             }
             // Who asked decides where the answer goes. One flag per channel and
@@ -864,12 +864,12 @@ private:
             m_locator.locate(m_settings);
         } else if (verb == QLatin1String("bloquear") || verb == QLatin1String("lock")) {
             if (!LostPhoneConfig::allows(m_settings, channel, Capability::Lock)) {
-                m_motivoUltimaOrden = QStringLiteral("this channel cannot lock it");
+                m_lastCommandReason = QStringLiteral("this channel cannot lock it");
                 return;
             }
             enterLostMode(argument);  // no reply
             // A phone that has just been given up for lost has to be locatable.
-            QTimer::singleShot(500, this, [this] { m_locator.encenderLoNecesario(); });
+            QTimer::singleShot(500, this, [this] { m_locator.turnOnWhatIsNeeded(); });
         } else if (verb == QLatin1String("desbloquear") || verb == QLatin1String("unlock")) {
             // Leaving lost mode is NOT the same permission as entering it.
             // Anybody who can lock the phone must not be able to unlock it: that
@@ -878,18 +878,18 @@ private:
             // the PIN.
             if (channel != Channel::Relay
                 || !LostPhoneConfig::allows(m_settings, channel, Capability::Lock)) {
-                m_motivoUltimaOrden = QStringLiteral("unlock only from the panel or with the PIN");
+                m_lastCommandReason = QStringLiteral("unlock only from the panel or with the PIN");
                 return;
             }
             leaveLostMode();  // no reply
-        } else if (verb == QLatin1String("apagar") || verb == QLatin1String("poweroff")) {
+        } else if (verb == QLatin1String("turnOff") || verb == QLatin1String("poweroff")) {
             // ONLY from the panel, the same as unlock, and with its own switch
             // that ships off on top of that. Two bolts for an order that has no
             // way back: a powered-off phone does not ring, does not say where it
             // is and obeys no one -- not you either.
             if (channel != Channel::Relay
                 || !LostPhoneConfig::allows(m_settings, channel, Capability::Power)) {
-                m_motivoUltimaOrden = QStringLiteral("power-off only from the panel, and it must be enabled");
+                m_lastCommandReason = QStringLiteral("power-off only from the panel, and it must be enabled");
                 return;
             }
             // Written down BEFORE powering off. Otherwise tomorrow the phone
@@ -921,7 +921,7 @@ private:
             qInfo().noquote() << "lost-phoned: order I do not understand:" << verb;
             return;
         }
-        m_motivoUltimaOrden.clear();
+        m_lastCommandReason.clear();
     }
 
     // What the laptop's command reads. Deliberately small: what it is, whether
@@ -934,14 +934,14 @@ private:
         QString position = QStringLiteral("null");
         if (m_settings.lanAllowLocate && l.valid) {
             position = QStringLiteral(
-                           "{\"latitud\":%1,\"longitud\":%2,\"precision_metros\":%3,"
-                           "\"origen\":\"%4\",\"when\":\"%5\"}")
+                           "{\"latitude\":%1,\"longitude\":%2,\"accuracy_meters\":%3,"
+                           "\"origin\":\"%4\",\"when\":\"%5\"}")
                            .arg(l.latitude, 0, 'f', 5)
                            .arg(l.longitude, 0, 'f', 5)
                            .arg(l.accuracyMeters)
                            .arg(l.source, l.when.toString(Qt::ISODate));
         }
-        return QStringLiteral("{\"ringing\":%1,\"perdido\":%2,\"ultima\":%3}")
+        return QStringLiteral("{\"ringing\":%1,\"lost\":%2,\"last\":%3}")
             .arg(m_ringer.ringing() ? QStringLiteral("true") : QStringLiteral("false"),
                  m_lost.active ? QStringLiteral("true") : QStringLiteral("false"), position)
             .toUtf8();
@@ -951,7 +951,7 @@ private:
     {
         m_lost.active = true;
         m_lost.since = QDateTime::currentDateTime();
-        armarRefresco();  // in lost mode it refreshes much more often
+        armRefresh();  // in lost mode it refreshes much more often
         if (!message.isEmpty()) {
             m_lost.message = message;
         }
@@ -967,7 +967,7 @@ private:
     void leaveLostMode()
     {
         m_lost.active = false;
-        armarRefresco();  // back to the calm rhythm
+        armRefresh();  // back to the calm rhythm
         LostModeState::save(m_lost);
         m_locker.clearMessage();
         qInfo() << "lost-phoned: lost mode deactivated";
@@ -1042,7 +1042,7 @@ private:
     // Who to answer the "state" to, and whether that channel may give coordinates.
     QString m_statusFor;
     // Empty = the last order ran. Otherwise, why it did not.
-    QString m_motivoUltimaOrden;
+    QString m_lastCommandReason;
     bool m_statusWithPosition = false;
     // Who asked for the position that is being worked out right now. A fix
     // takes up to a minute and a half, so the answer has to remember where to
@@ -1053,10 +1053,10 @@ private:
     QByteArray m_fingerprint;
 
     // Orders that arrived during the grace minute, with who to answer them to.
-    QList<QPair<Channel, QString>> m_pendientes;
-    QHash<QString, QString> m_pendienteSms;
+    QList<QPair<Channel, QString>> m_pending;
+    QHash<QString, QString> m_pendingSms;
     QTimer m_start;
-    QTimer m_refresco;
+    QTimer m_refresh;
     QString m_lastPairingError;
 };
 
@@ -1069,7 +1069,10 @@ int main(int argc, char *argv[])
     // the volume back where the user had it. The alarm raises it to maximum on
     // purpose and a phone left there for ever would break the one-writer rule
     // the `audio` setting depends on.
-    if (argc > 1 && QLatin1String(argv[1]) == QLatin1String("--restaurar")) {
+    // --restaurar was the only name; both work, because the unit that calls
+    // this is installed on the phone and may still be the older one.
+    if (argc > 1 && (QLatin1String(argv[1]) == QLatin1String("--restore")
+                     || QLatin1String(argv[1]) == QLatin1String("--restaurar"))) {
         Ringer::restoreSavedVolume();
         return 0;
     }

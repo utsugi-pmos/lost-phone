@@ -38,15 +38,23 @@
 
 struct LostMode {
     bool active = false;
-    QString message;  // shown on the lock screen, e.g. "llama al 6xx xxx xxx"
+    QString message;  // shown on the lock screen, e.g. "call 6xx xxx xxx"
     QDateTime since;
 };
 
 namespace LostModeState
 {
-// $XDG_STATE_HOME/lost-phone/modo-perdido, which is ~/.local/state/... by
-// default. Fixed on purpose: smart-unlock reads it by path.
+// $XDG_STATE_HOME/lost-phone/, which is ~/.local/state/lost-phone/ by default.
+QString dirPath();
+
+// The file lost mode is written to: dirPath() + "lost-mode". Fixed on purpose:
+// smart-unlock reads it by path, and it is a separate package, so the name is a
+// contract between the two.
 QString filePath();
+
+// The file lost mode is read from: the one above, or "modo-perdido" -- its name
+// before the rename -- when only that one exists.
+QString readPath();
 
 LostMode load();
 void save(const LostMode &state);

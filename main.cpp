@@ -34,10 +34,13 @@ int main(int argc, char *argv[])
 
     QGuiApplication::setDesktopFileName(QStringLiteral("org.kde.lostphone"));
 
-    // --alarma: the full-screen stop button, launched by the daemon when the
+    // --alarm: the full-screen stop button, launched by the daemon when the
     // alarm starts. Same binary, same backend, a different first screen -- so
     // there is one place where "stop" is implemented and it cannot drift.
-    const bool alarma = app.arguments().contains(QStringLiteral("--alarma"));
+    // --alarm is the name; --alarma is what an installed daemon still passes,
+    // and the daemon is a separate binary that can be older than this one.
+    const bool alarm = app.arguments().contains(QStringLiteral("--alarm"))
+        || app.arguments().contains(QStringLiteral("--alarma"));
 
     LostPhoneBackend backend;
 
@@ -45,7 +48,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextObject(new KLocalizedContext(&engine));
     engine.rootContext()->setContextProperty(QStringLiteral("lostPhoneBackend"), &backend);
 
-    engine.loadFromModule("LostPhone", alarma ? "Alarma" : "App");
+    engine.loadFromModule("LostPhone", alarm ? "Alarm" : "App");
 
     if (engine.rootObjects().isEmpty()) {
         return 1;

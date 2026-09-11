@@ -63,7 +63,7 @@ public:
     // GNSS either locks or runs out of time. The cheap channels are read
     // straight away, so even a fix that times out carries the cell and the
     // Wi-Fi rather than nothing.
-    // `encender` decides whether Wi-Fi, radio and GPS are turned on before
+    // `turnOn` decides whether Wi-Fi, radio and GPS are turned on before
     // measuring.
     //
     // True when somebody is SEARCHING for the phone, because then the battery is
@@ -71,7 +71,7 @@ public:
     // panel's map fresh: that happens every half hour and for ever, and leaving
     // the GPS on in perpetuity for a refresh would trade the phone's battery for a
     // convenience.
-    void locate(const Settings &settings, bool encender = true);
+    void locate(const Settings &settings, bool turnOn = true);
 
     bool busy() const { return m_busy; }
 
@@ -84,7 +84,7 @@ public:
     // the way, so do the home channel and the relay.
     //
     // A lost phone cares more about being found than about saving battery.
-    void encenderLoNecesario();
+    void turnOnWhatIsNeeded();
 
     // Leaves Wi-Fi, the modem radio and the GPS as they were BEFORE we turned them
     // on, and only what we turned on ourselves: if Wi-Fi was already on, it is not
@@ -94,7 +94,7 @@ public:
     // sofa has no reason to keep all the radios on for ever; whoever really lost it
     // is in lost mode, and there they are NOT put back -- turning them off when the
     // alarm goes quiet would leave it unlocatable just while you are looking for it.
-    void devolverRadios();
+    void giveBackRadios();
 
 Q_SIGNALS:
     void finished(const Fix &fix);
