@@ -201,7 +201,7 @@ struct Settings {
     // same network proves nothing about who you are.
     bool lanEnabled = false;
     QString lanToken;
-    // The simple door: GET /sonar?clave=... and nothing more.
+    // The simple door: GET /sonar?key=... and nothing more.
     //
     // It exists because the token with an Authorization header serves a program
     // and not a person: it cannot be pasted into the browser bar, put on a home

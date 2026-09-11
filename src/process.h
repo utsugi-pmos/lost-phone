@@ -26,24 +26,24 @@
 #include <QString>
 #include <QStringList>
 
-namespace Proceso
+namespace Proc
 {
 // LC_ALL=C and LANG=C. Not tidiness -- correctness.
-inline QProcessEnvironment entornoSinIdioma()
+inline QProcessEnvironment languageFreeEnvironment()
 {
-    QProcessEnvironment entorno = QProcessEnvironment::systemEnvironment();
-    entorno.insert(QStringLiteral("LC_ALL"), QStringLiteral("C"));
-    entorno.insert(QStringLiteral("LANG"), QStringLiteral("C"));
-    return entorno;
+    QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
+    environment.insert(QStringLiteral("LC_ALL"), QStringLiteral("C"));
+    environment.insert(QStringLiteral("LANG"), QStringLiteral("C"));
+    return environment;
 }
 
 // Runs a short command and returns its standard output, or an empty string if
 // it could not run, failed, or took too long. Everything here is best-effort by
 // design: a phone that cannot read its own volume still has to make noise.
-inline QString salida(const QString &program, const QStringList &args, int timeoutMs = 3000)
+inline QString output(const QString &program, const QStringList &args, int timeoutMs = 3000)
 {
     QProcess p;
-    p.setProcessEnvironment(entornoSinIdioma());
+    p.setProcessEnvironment(languageFreeEnvironment());
     p.start(program, args);
     if (!p.waitForFinished(timeoutMs)) {
         p.kill();

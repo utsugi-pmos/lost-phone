@@ -34,7 +34,7 @@ public:
     // up behind: pressing power, unlocking and finding the window. That is, exactly
     // the steps the alarm screen was there to remove. Measured on the surya: it
     // rang and the screen did not turn on.
-    void despertarPantalla();
+    void wakeScreen();
 
     // Locks the session now. Safe to call when already locked: it is the "make
     // sure" that runs at every start while lost mode is on.

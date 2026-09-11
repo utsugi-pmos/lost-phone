@@ -112,7 +112,7 @@ private:
     Settings m_settings;
     QTimer m_poll;
     QDateTime m_deadline;
-    QDateTime m_afinando;
+    QDateTime m_refining;
     bool m_busy = false;
     bool m_encendio = false;  // whether the current attempt turned the radios on
 

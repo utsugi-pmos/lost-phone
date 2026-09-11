@@ -33,7 +33,7 @@ void Locker::onActionInvoked(uint id, const QString &action)
     }
 }
 
-void Locker::despertarPantalla()
+void Locker::wakeScreen()
 {
     // PowerDevil, which is what rules the screen of this phone. Two seconds: if it
     // does not answer in that time it will not answer, and the alarm cannot sit

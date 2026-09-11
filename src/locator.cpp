@@ -27,7 +27,7 @@ constexpr int kPollSeconds = 5;
 // LAST one, not the first. Without HDOP in the NMEA sentence there is no way to
 // measure the quality, and "the most recent" is the only honest improvement that
 // can be made blind.
-constexpr int kAfinadoSeconds = 20;
+constexpr int kRefineSeconds = 20;
 
 
 // mmcli prints a table, so every value is "  KEY | name: value". One helper
@@ -95,7 +95,7 @@ Locator::Locator(QObject *parent)
 
 void Locator::readCell(Fix &fix)
 {
-    const QString out = Proceso::salida(QStringLiteral("mmcli"),
+    const QString out = Proc::output(QStringLiteral("mmcli"),
                             {QStringLiteral("-m"), QStringLiteral("any"),
                              QStringLiteral("--location-get")});
     if (out.isEmpty()) {
@@ -116,7 +116,7 @@ void Locator::readWifi(Fix &fix)
     // BSSID as "\:" -- so splitting naively turns one AP into six fields. The
     // placeholder swap is uglier than a regular expression and a great deal
     // more predictable.
-    const QString out = Proceso::salida(QStringLiteral("nmcli"),
+    const QString out = Proc::output(QStringLiteral("nmcli"),
                             {QStringLiteral("-t"), QStringLiteral("-f"),
                              QStringLiteral("BSSID,SIGNAL,SSID"), QStringLiteral("dev"),
                              QStringLiteral("wifi"), QStringLiteral("list")});
@@ -170,7 +170,7 @@ void Locator::readBattery(Fix &fix)
 
 bool Locator::readGnss(Fix &fix)
 {
-    const QString out = Proceso::salida(QStringLiteral("mmcli"),
+    const QString out = Proc::output(QStringLiteral("mmcli"),
                             {QStringLiteral("-m"), QStringLiteral("any"),
                              QStringLiteral("--location-get")});
     if (out.isEmpty()) {
@@ -236,22 +236,22 @@ bool Locator::readGnss(Fix &fix)
 // what there is. Half a position is better than none.
 void Locator::encenderLoNecesario()
 {
-    if (Proceso::salida(QStringLiteral("nmcli"),
+    if (Proc::output(QStringLiteral("nmcli"),
                         {QStringLiteral("-t"), QStringLiteral("-f"), QStringLiteral("WIFI"),
                          QStringLiteral("radio")})
             .contains(QLatin1String("disabled"))) {
         qInfo() << "lost-phoned: turning Wi-Fi on to be able to place myself";
-        Proceso::salida(QStringLiteral("nmcli"),
+        Proc::output(QStringLiteral("nmcli"),
                         {QStringLiteral("radio"), QStringLiteral("wifi"), QStringLiteral("on")},
                         8000);
         m_encendiWifi = true;
     }
-    if (Proceso::salida(QStringLiteral("nmcli"),
+    if (Proc::output(QStringLiteral("nmcli"),
                         {QStringLiteral("-t"), QStringLiteral("-f"), QStringLiteral("WWAN"),
                          QStringLiteral("radio")})
             .contains(QLatin1String("disabled"))) {
         qInfo() << "lost-phoned: turning the modem radio on";
-        Proceso::salida(QStringLiteral("nmcli"),
+        Proc::output(QStringLiteral("nmcli"),
                         {QStringLiteral("radio"), QStringLiteral("wwan"), QStringLiteral("on")},
                         8000);
         m_encendiWwan = true;
@@ -259,7 +259,7 @@ void Locator::encenderLoNecesario()
 
     // The modem's location. All three are requested at once because mmcli treats
     // them as a set: requesting only one TURNS OFF the others.
-    const QString estado = Proceso::salida(
+    const QString state = Proc::output(
         QStringLiteral("mmcli"),
         {QStringLiteral("-m"), QStringLiteral("any"), QStringLiteral("--location-status")});
     //
@@ -269,21 +269,21 @@ void Locator::encenderLoNecesario()
     // Searching the full text gave "already set" no matter what, and this branch
     // never ran. Measured on the surya 2026-09-06: with the GPS turned off by
     // hand, the alarm turned Wi-Fi on and left the GPS off.
-    QString habilitadas;
-    const QStringList lineas = estado.split(QLatin1Char('\n'));
-    for (const QString &linea : lineas) {
-        const int i = linea.indexOf(QLatin1String("enabled:"));
+    QString enabled;
+    const QStringList lines = state.split(QLatin1Char('\n'));
+    for (const QString &line : lines) {
+        const int i = line.indexOf(QLatin1String("enabled:"));
         if (i >= 0) {
-            habilitadas = linea.mid(i + 8);
+            enabled = line.mid(i + 8);
             break;
         }
     }
-    if (!habilitadas.contains(QLatin1String("gps-raw"))
-        || !habilitadas.contains(QLatin1String("gps-nmea"))
-        || !habilitadas.contains(QLatin1String("3gpp-lac-ci"))) {
+    if (!enabled.contains(QLatin1String("gps-raw"))
+        || !enabled.contains(QLatin1String("gps-nmea"))
+        || !enabled.contains(QLatin1String("3gpp-lac-ci"))) {
         qInfo().noquote() << "lost-phoned: turning the modem location on; now:"
-                          << habilitadas.trimmed();
-        Proceso::salida(QStringLiteral("mmcli"),
+                          << enabled.trimmed();
+        Proc::output(QStringLiteral("mmcli"),
                         {QStringLiteral("-m"), QStringLiteral("any"),
                          QStringLiteral("--location-enable-gps-raw"),
                          QStringLiteral("--location-enable-gps-nmea"),
@@ -303,7 +303,7 @@ void Locator::devolverRadios()
     // The GPS first: turning it off cuts no connection, so if something fails
     // afterwards at least this is already done.
     if (m_encendiGps) {
-        Proceso::salida(QStringLiteral("mmcli"),
+        Proc::output(QStringLiteral("mmcli"),
                         {QStringLiteral("-m"), QStringLiteral("any"),
                          QStringLiteral("--location-disable-gps-raw"),
                          QStringLiteral("--location-disable-gps-nmea")},
@@ -311,7 +311,7 @@ void Locator::devolverRadios()
         m_encendiGps = false;
     }
     if (m_encendiWwan) {
-        Proceso::salida(QStringLiteral("nmcli"),
+        Proc::output(QStringLiteral("nmcli"),
                         {QStringLiteral("radio"), QStringLiteral("wwan"), QStringLiteral("off")},
                         8000);
         m_encendiWwan = false;
@@ -319,7 +319,7 @@ void Locator::devolverRadios()
     // Wi-Fi last: it is where the stop order itself may be arriving, and cutting
     // it earlier would leave everything else half done.
     if (m_encendiWifi) {
-        Proceso::salida(QStringLiteral("nmcli"),
+        Proc::output(QStringLiteral("nmcli"),
                         {QStringLiteral("radio"), QStringLiteral("wifi"), QStringLiteral("off")},
                         8000);
         m_encendiWifi = false;
@@ -385,7 +385,7 @@ void Locator::locate(const Settings &settings, bool encender)
     // 2026-09-06: "first fix; tuning 20 s" and the position, both in the same
     // second.
     m_deadline = QDateTime::currentDateTime().addSecs(qMax(10, settings.gnssTimeoutSeconds));
-    m_afinando = QDateTime();
+    m_refining = QDateTime();
 
     // The polling is armed BEFORE the first read, and the first read is a call to
     // the same pollGnss() rather than a copy of it.
@@ -402,14 +402,14 @@ void Locator::locate(const Settings &settings, bool encender)
 void Locator::pollGnss()
 {
     if (readGnss(m_fix)) {
-        if (!m_afinando.isValid()) {
-            m_afinando = QDateTime::currentDateTime().addSecs(kAfinadoSeconds);
+        if (!m_refining.isValid()) {
+            m_refining = QDateTime::currentDateTime().addSecs(kRefineSeconds);
             qInfo() << "lost-phoned: first fix; tuning"
-                    << kAfinadoSeconds << "s before answering";
+                    << kRefineSeconds << "s before answering";
         }
         // The overall deadline rules: tuning cannot extend it.
-        const QDateTime ahora = QDateTime::currentDateTime();
-        if (ahora < m_afinando && ahora < m_deadline) {
+        const QDateTime now = QDateTime::currentDateTime();
+        if (now < m_refining && now < m_deadline) {
             return;
         }
         complete();

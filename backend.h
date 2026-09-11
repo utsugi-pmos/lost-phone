@@ -36,10 +36,10 @@ class LostPhoneBackend : public QObject
     Q_PROPERTY(QString ringSound READ ringSound WRITE setRingSound NOTIFY changed)
     Q_PROPERTY(int ringVolume READ ringVolume WRITE setRingVolume NOTIFY changed)
 
-    // [{nombre, ruta}] -- what is installed on the phone, read on the fly. Not a
+    // [{name, path}] -- what is installed on the phone, read on the fly. Not a
     // fixed list in the code: if another sound theme gets installed tomorrow, it
     // shows up on its own.
-    Q_PROPERTY(QVariantList sonidos READ sonidos CONSTANT)
+    Q_PROPERTY(QVariantList sounds READ sounds CONSTANT)
 
     Q_PROPERTY(bool locateGnss READ locateGnss WRITE setLocateGnss NOTIFY changed)
     Q_PROPERTY(bool locateWifi READ locateWifi WRITE setLocateWifi NOTIFY changed)
@@ -115,7 +115,7 @@ public:
     int ringSeconds() const { return m_working.ringSeconds; }
     QString ringSound() const { return m_working.ringSound; }
     int ringVolume() const { return m_working.ringVolume; }
-    QVariantList sonidos() const;
+    QVariantList sounds() const;
     bool locateGnss() const { return m_working.locateGnss; }
     bool locateWifi() const { return m_working.locateWifi; }
     bool locateCell() const { return m_working.locateCell; }
@@ -194,7 +194,7 @@ public:
     Q_INVOKABLE void setNtfyAllowLocate(bool value);
 
     // Two topics nobody can guess, offered so the user does not name them
-    // "movil" and hand the whole channel to the first person who tries.
+    // "phone" and hand the whole channel to the first person who tries.
     Q_INVOKABLE QString suggestTopic() const;
 
     Q_INVOKABLE void setLanEnabled(bool value);

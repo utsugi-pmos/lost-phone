@@ -273,7 +273,7 @@ void RelayClient::confiar(QNetworkReply *reply, bool primeraVez)
                 if (certificado.isNull()) {
                     return;  // with no certificate there is nothing to pin
                 }
-                const QString huella =
+                const QString fingerprint =
                     QString::fromLatin1(certificado.digest(QCryptographicHash::Sha256).toHex(':'))
                         .toUpper();
 
@@ -289,17 +289,17 @@ void RelayClient::confiar(QNetworkReply *reply, bool primeraVez)
                 }
 
                 if (primeraVez) {
-                    m_huellaVista = huella;
+                    m_seenFingerprint = fingerprint;
                     reply->ignoreSslErrors(errores);
                     return;
                 }
                 if (!m_settings.relayFingerprint.isEmpty()
-                    && huella == m_settings.relayFingerprint) {
+                    && fingerprint == m_settings.relayFingerprint) {
                     reply->ignoreSslErrors(errores);
                     return;
                 }
                 qWarning() << "lost-phoned: the relay presents ANOTHER certificate. Expected"
-                           << m_settings.relayFingerprint << "and got" << huella
+                           << m_settings.relayFingerprint << "and got" << fingerprint
                            << "-- not connecting";
             });
 }
@@ -328,7 +328,7 @@ void RelayClient::pair(const QString &url, const QString &code, const QString &n
         {QStringLiteral("name"), name},
     };
 
-    m_huellaVista.clear();
+    m_seenFingerprint.clear();
     QNetworkReply *reply = m_net.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
     confiar(reply, true);
     connect(reply, &QNetworkReply::finished, this, [this, reply] {
@@ -343,6 +343,6 @@ void RelayClient::pair(const QString &url, const QString &code, const QString &n
             Q_EMIT pairingFailed(why.isEmpty() ? reply->errorString() : why);
             return;
         }
-        Q_EMIT paired(answer.value(QStringLiteral("id")).toString(), token, m_huellaVista);
+        Q_EMIT paired(answer.value(QStringLiteral("id")).toString(), token, m_seenFingerprint);
     });
 }

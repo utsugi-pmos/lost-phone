@@ -7,70 +7,70 @@
 
 #include <cstdio>
 
-static int fallos = 0;
+static int failures = 0;
 static int total = 0;
 
-static void comprobar(const char *nombre, bool ok)
+static void check(const char *name, bool ok)
 {
     ++total;
     if (!ok) {
-        ++fallos;
-        std::printf("  FAIL   %s\n", nombre);
+        ++failures;
+        std::printf("  FAIL   %s\n", name);
     } else {
-        std::printf("  ok     %s\n", nombre);
+        std::printf("  ok     %s\n", name);
     }
 }
 
-static QByteArray mensaje(const char *texto)
+static QByteArray message(const char *text)
 {
-    return QByteArray("{\"event\":\"message\",\"topic\":\"t\",\"message\":\"") + texto + "\"}";
+    return QByteArray("{\"event\":\"message\",\"topic\":\"t\",\"message\":\"") + text + "\"}";
 }
 
 int main()
 {
-    const QString clave = QStringLiteral("miclave");
+    const QString key = QStringLiteral("mykey");
 
     std::printf("\n--- what is NOT an order ---\n");
-    comprobar("a keepalive is not an order",
-              NtfyProtocol::commandFrom("{\"event\":\"keepalive\",\"topic\":\"t\"}", clave).isEmpty());
-    comprobar("the open event is not one either",
-              NtfyProtocol::commandFrom("{\"event\":\"open\",\"topic\":\"t\"}", clave).isEmpty());
-    comprobar("a line that is not JSON is not one either",
-              NtfyProtocol::commandFrom("esto no es json", clave).isEmpty());
-    comprobar("an empty message is not one either",
-              NtfyProtocol::commandFrom(mensaje(""), clave).isEmpty());
+    check("a keepalive is not an order",
+              NtfyProtocol::commandFrom("{\"event\":\"keepalive\",\"topic\":\"t\"}", key).isEmpty());
+    check("the open event is not one either",
+              NtfyProtocol::commandFrom("{\"event\":\"open\",\"topic\":\"t\"}", key).isEmpty());
+    check("a line that is not JSON is not one either",
+              NtfyProtocol::commandFrom("esto no es json", key).isEmpty());
+    check("an empty message is not one either",
+              NtfyProtocol::commandFrom(message(""), key).isEmpty());
 
     std::printf("\n--- the key rules ---\n");
-    comprobar("without the key in front, it does not obey",
-              NtfyProtocol::commandFrom(mensaje("sonar"), clave).isEmpty());
-    comprobar("with another key, it does not obey",
-              NtfyProtocol::commandFrom(mensaje("otraclave sonar"), clave).isEmpty());
+    check("without the key in front, it does not obey",
+              NtfyProtocol::commandFrom(message("sonar"), key).isEmpty());
+    check("with another key, it does not obey",
+              NtfyProtocol::commandFrom(message("otherkey sonar"), key).isEmpty());
 
     // The important bit: MENTIONING the key is not enough, it has to come FIRST.
     // Otherwise, any conversation that quoted it would fire orders.
-    comprobar("mentioning the key in the middle is not enough",
-              NtfyProtocol::commandFrom(mensaje("oye la clave es miclave sonar"), clave).isEmpty());
-    comprobar("the key stuck to another word does not pass",
-              NtfyProtocol::commandFrom(mensaje("miclavex sonar"), clave).isEmpty());
-    comprobar("the key alone, without a verb, does nothing",
-              NtfyProtocol::commandFrom(mensaje("miclave"), clave).isEmpty());
+    check("mentioning the key in the middle is not enough",
+              NtfyProtocol::commandFrom(message("oye la key es mykey sonar"), key).isEmpty());
+    check("the key stuck to another word does not pass",
+              NtfyProtocol::commandFrom(message("mykeyx sonar"), key).isEmpty());
+    check("the key alone, without a verb, does nothing",
+              NtfyProtocol::commandFrom(message("mykey"), key).isEmpty());
 
     // And with no key configured the channel is dead, whatever is sent.
-    comprobar("with no key configured it obeys nothing",
-              NtfyProtocol::commandFrom(mensaje("miclave sonar"), QString()).isEmpty());
+    check("with no key configured it obeys nothing",
+              NtfyProtocol::commandFrom(message("mykey sonar"), QString()).isEmpty());
 
     std::printf("\n--- what IS an order ---\n");
-    comprobar("key and verb", NtfyProtocol::commandFrom(mensaje("miclave sonar"), clave)
+    check("key and verb", NtfyProtocol::commandFrom(message("mykey sonar"), key)
                                    == QLatin1String("sonar"));
-    comprobar("it is case-insensitive",
-              NtfyProtocol::commandFrom(mensaje("MiClave sonar"), clave) == QLatin1String("sonar"));
-    comprobar("extra spaces do not matter",
-              NtfyProtocol::commandFrom(mensaje("  miclave   sonar  "), clave)
+    check("it is case-insensitive",
+              NtfyProtocol::commandFrom(message("MyKey sonar"), key) == QLatin1String("sonar"));
+    check("extra spaces do not matter",
+              NtfyProtocol::commandFrom(message("  mykey   sonar  "), key)
                   == QLatin1String("sonar"));
-    comprobar("the lock argument arrives whole",
-              NtfyProtocol::commandFrom(mensaje("miclave bloquear llama al 600 123 456"), clave)
+    check("the lock argument arrives whole",
+              NtfyProtocol::commandFrom(message("mykey bloquear llama al 600 123 456"), key)
                   == QLatin1String("bloquear llama al 600 123 456"));
 
-    std::printf("\n%d checks, %d failures\n", total, fallos);
-    return fallos == 0 ? 0 : 1;
+    std::printf("\n%d checks, %d failures\n", total, failures);
+    return failures == 0 ? 0 : 1;
 }

@@ -86,7 +86,7 @@ private:
     void confiar(QNetworkReply *reply, bool primeraVez);
 
     // The fingerprint seen during pairing, until it is saved.
-    QString m_huellaVista;
+    QString m_seenFingerprint;
 
     QNetworkAccessManager m_net;
     Settings m_settings;
