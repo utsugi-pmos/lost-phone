@@ -28,7 +28,7 @@ Locker::Locker(QObject *parent)
 
 void Locker::onActionInvoked(uint id, const QString &action)
 {
-    if (id == m_notificationId && action == QLatin1String("parar")) {
+    if (id == m_notificationId && action == QLatin1String("stop")) {
         Q_EMIT stopRequested();
     }
 }
