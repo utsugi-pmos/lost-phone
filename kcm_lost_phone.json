@@ -2,6 +2,10 @@
     "KPlugin": {
         "Description": "Find the phone: ring it and learn where it is",
         "Description[es]": "Encontrar el movil: hacerlo sonar y saber donde esta",
+        "FormFactors": [
+            "handset",
+            "tablet"
+        ],
         "Icon": "find-location",
         "Name": "Find the phone",
         "Name[es]": "Encontrar el movil",
